@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/task_model.dart';
 import '../repositories/task_repository.dart';
+import '../services/notification_service.dart';
 
 class AddTaskScreen extends StatefulWidget {
   const AddTaskScreen({super.key});
@@ -67,7 +68,31 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       userId: userId,
       isCompleted: false,
     );
-    await TaskRepository().createTask(task);
+    final taskId = await TaskRepository().createTask(task);
+
+    // Jadwalkan notifikasi 3 jam sebelum deadline
+    final notifTime = _selectedDateTime!.add(const Duration(hours: 3));
+    if (notifTime.isAfter(DateTime.now())) {
+      await NotificationService().scheduleNotification(
+        id: taskId * 10 + 1,
+        title: 'Pengingat Tugas',
+        body: 'Tugas "${task.title}" akan berakhir 3 jam lagi!',
+        scheduledTime: notifTime,
+        sound: false,
+      );
+    }
+    // Jadwalkan notifikasi alarm 1 jam sebelum deadline
+    final alarmTime = _selectedDateTime!.add(const Duration(hours: 1));
+    if (alarmTime.isAfter(DateTime.now())) {
+      await NotificationService().scheduleNotification(
+        id: taskId * 10 + 2,
+        title: 'Alarm Tugas',
+        body: 'Tugas "${task.title}" akan berakhir 1 jam lagi!',
+        scheduledTime: alarmTime,
+        sound: true,
+      );
+    }
+
     setState(() => _isLoading = false);
     if (mounted) Navigator.pop(context, true);
   }
