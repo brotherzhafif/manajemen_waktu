@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import '../repositories/reminder_repository.dart';
+import '../repositories/task_repository.dart';
 import '../models/task_model.dart';
 
 class ReminderScreen extends StatefulWidget {
@@ -13,33 +13,30 @@ class ReminderScreen extends StatefulWidget {
 
 class _ReminderScreenState extends State<ReminderScreen> {
   DateTime _activeMonth = DateTime(DateTime.now().year, DateTime.now().month);
-  late Future<List<ReminderWithTask>> _remindersFuture;
+  late Future<List<Task>> _tasksFuture;
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null);
-    _loadReminders();
+    _loadTasks();
   }
 
-  void _loadReminders() {
+  void _loadTasks() {
     // Ganti userId sesuai login
-    _remindersFuture = ReminderRepository().getRemindersWithTaskByMonth(
-      1,
-      _activeMonth,
-    );
+    _tasksFuture = TaskRepository().getTasksByUserId(1);
   }
 
   void _changeMonth(int delta) {
     setState(() {
       _activeMonth = DateTime(_activeMonth.year, _activeMonth.month + delta);
-      _loadReminders();
+      _loadTasks();
     });
   }
 
-  Future<void> _deleteReminder(int id) async {
-    await ReminderRepository().deleteReminder(id);
-    _loadReminders();
+  Future<void> _deleteTask(int id) async {
+    await TaskRepository().deleteTask(id);
+    _loadTasks();
     setState(() {});
   }
 
@@ -64,7 +61,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pengingat')),
+      appBar: AppBar(title: const Text('Reminder (Tugas)')),
       body: Column(
         children: [
           Padding(
@@ -91,34 +88,79 @@ class _ReminderScreenState extends State<ReminderScreen> {
             ),
           ),
           Expanded(
-            child: FutureBuilder<List<ReminderWithTask>>(
-              future: _remindersFuture,
+            child: FutureBuilder<List<Task>>(
+              future: _tasksFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Center(
-                    child: Text('Belum ada pengingat di bulan ini.'),
+                    child: Text('Belum ada tugas di bulan ini.'),
                   );
                 }
-                final reminders = snapshot.data!;
-                return ListView.builder(
-                  itemCount: reminders.length,
+                final tasks = snapshot.data!
+                    .where(
+                      (t) =>
+                          t.startTime.month == _activeMonth.month &&
+                          t.startTime.year == _activeMonth.year,
+                    )
+                    .toList();
+                if (tasks.isEmpty) {
+                  return const Center(
+                    child: Text('Belum ada tugas di bulan ini.'),
+                  );
+                }
+                return ListView.separated(
+                  itemCount: tasks.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, i) {
-                    final r = reminders[i];
-                    final date = r.reminder.waktuPengingat;
+                    final t = tasks[i];
+                    final date = t.startTime;
                     final hari = DateFormat('EEEE', 'id_ID').format(date);
                     final tanggal = DateFormat(
-                      'd MMMM yyyy',
+                      'd MMMM yyyy HH:mm',
                       'id_ID',
                     ).format(date);
                     return ListTile(
-                      title: Text(r.task?.title ?? '(Tugas dihapus)'),
-                      subtitle: Text('$hari, $tanggal'),
+                      leading: const Icon(
+                        Icons.notifications,
+                        color: Colors.orange,
+                      ),
+                      title: Text(t.title),
+                      subtitle: Text(
+                        '$hari, $tanggal\nPrioritas: ${t.priority}',
+                      ),
+                      isThreeLine: true,
                       trailing: IconButton(
                         icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () => _deleteReminder(r.reminder.id!),
+                        onPressed: () async {
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Konfirmasi'),
+                              content: const Text(
+                                'Apakah anda yakin ingin menghapus tugas ini?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, false),
+                                  child: const Text('Batal'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx, true),
+                                  child: const Text(
+                                    'Hapus',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                          if (confirm == true) {
+                            await _deleteTask(t.id!);
+                          }
+                        },
                       ),
                     );
                   },
@@ -129,7 +171,5 @@ class _ReminderScreenState extends State<ReminderScreen> {
         ],
       ),
     );
-    // Model untuk join reminder dan task
-    // ReminderWithTask is now imported from the repository.
   }
 }
