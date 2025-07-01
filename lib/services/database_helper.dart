@@ -17,7 +17,23 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'time_management.db');
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _onCreate,
+      onOpen: (db) async {
+        // Pastikan tabel reminders ada (untuk migrasi manual)
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS reminders(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            taskId INTEGER NOT NULL,
+            waktuPengingat INTEGER NOT NULL,
+            tipePengingat TEXT NOT NULL,
+            FOREIGN KEY (taskId) REFERENCES tasks (id) ON DELETE CASCADE
+          )
+        ''');
+      },
+    );
   }
 
   Future<void> _onCreate(Database db, int version) async {

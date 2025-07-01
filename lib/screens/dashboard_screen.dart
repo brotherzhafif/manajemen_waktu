@@ -1,10 +1,198 @@
 import 'package:flutter/material.dart';
+import '../repositories/task_repository.dart';
+import '../models/task_model.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'reminder_screen.dart';
+import 'report_screen.dart';
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  int _selectedIndex = 0;
+  DateTime _activeMonth = DateTime(DateTime.now().year, DateTime.now().month);
+  late Future<List<Task>> _tasksFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting('id_ID', null);
+    _loadTasks();
+  }
+
+  void _loadTasks() {
+    // Ganti userId sesuai login
+    _tasksFuture = TaskRepository().getTasksByUserId(1);
+  }
+
+  void _changeMonth(int delta) {
+    setState(() {
+      _activeMonth = DateTime(_activeMonth.year, _activeMonth.month + delta);
+      _loadTasks();
+    });
+  }
+
+  Future<void> _toggleStatus(Task task) async {
+    await TaskRepository().updateTask(
+      task.copyWith(isCompleted: !task.isCompleted),
+    );
+    _loadTasks();
+    setState(() {});
+  }
+
+  String _monthYearLabel(DateTime dt) {
+    final months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return '${months[dt.month - 1]} ${dt.year}';
+  }
+
+  // Widget untuk setiap tab
+  Widget _buildHomeTab() {
+    return Column(
+      children: [
+        // Selector bulan
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () => _changeMonth(-1),
+              ),
+              Text(
+                _monthYearLabel(_activeMonth),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () => _changeMonth(1),
+              ),
+            ],
+          ),
+        ),
+        // Statistik status
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+          child: Row(
+            children: [
+              _StatusLegend(color: Colors.red, label: 'Pending'),
+              const SizedBox(width: 16),
+              _StatusLegend(color: Colors.green, label: 'Done'),
+            ],
+          ),
+        ),
+        // List tugas
+        Expanded(
+          child: FutureBuilder<List<Task>>(
+            future: _tasksFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (!snapshot.hasData) {
+                return const Center(child: Text('Tidak ada tugas.'));
+              }
+              // Filter berdasarkan bulan aktif
+              final tasks = snapshot.data!
+                  .where(
+                    (t) =>
+                        t.startTime.month == _activeMonth.month &&
+                        t.startTime.year == _activeMonth.year,
+                  )
+                  .toList();
+              if (tasks.isEmpty) {
+                return const Center(
+                  child: Text('Belum ada tugas di bulan ini.'),
+                );
+              }
+              return ListView.separated(
+                itemCount: tasks.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, i) {
+                  final t = tasks[i];
+                  final date = t.startTime;
+                  final hari = DateFormat('EEEE', 'id_ID').format(date);
+                  final tanggal = DateFormat(
+                    'd MMMM yyyy',
+                    'id_ID',
+                  ).format(date).toUpperCase();
+                  return ListTile(
+                    leading: GestureDetector(
+                      onTap: () => _toggleStatus(t),
+                      child: Icon(
+                        Icons.circle,
+                        color: t.isCompleted ? Colors.green : Colors.red,
+                      ),
+                    ),
+                    title: Text(t.title),
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          tanggal,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(hari, style: const TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                    trailing: Checkbox(
+                      value: t.isCompleted,
+                      onChanged: (_) => _toggleStatus(t),
+                      activeColor: Colors.green,
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReminderTab() {
+    return const ReminderScreen();
+  }
+
+  Widget _buildReportTab() {
+    return const ReportScreen();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    Widget body;
+    if (_selectedIndex == 0) {
+      body = _buildHomeTab();
+    } else if (_selectedIndex == 1) {
+      body = _buildReminderTab();
+    } else {
+      body = _buildReportTab();
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Dashboard'),
@@ -19,131 +207,55 @@ class DashboardScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Selamat Datang!',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Hari ini: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}',
-              style: const TextStyle(fontSize: 16, color: Colors.grey),
-            ),
-            const SizedBox(height: 32),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                children: [
-                  _buildFeatureCard(
-                    context,
-                    'Tugas Hari Ini',
-                    Icons.today,
-                    Colors.blue,
-                    () {
-                      // Navigate to tasks
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Fitur akan segera hadir!'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    'Tambah Tugas',
-                    Icons.add_task,
-                    Colors.green,
-                    () {
-                      // Navigate to add task
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Fitur akan segera hadir!'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    'Reminder',
-                    Icons.notifications,
-                    Colors.orange,
-                    () {
-                      // Navigate to reminder
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Fitur akan segera hadir!'),
-                        ),
-                      );
-                    },
-                  ),
-                  _buildFeatureCard(
-                    context,
-                    'Statistik',
-                    Icons.bar_chart,
-                    Colors.purple,
-                    () {
-                      // Navigate to reports
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Fitur akan segera hadir!'),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      body: body,
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () async {
+                final result = await Navigator.pushNamed(
+                  context,
+                  '/tambah-tugas',
+                );
+                if (result == true) {
+                  _loadTasks();
+                  setState(() {});
+                }
+              },
+              child: const Icon(Icons.add),
+              tooltip: 'Tambah Tugas',
+            )
+          : null,
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (idx) {
+          setState(() {
+            _selectedIndex = idx;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.notifications),
+            label: 'Reminder',
+          ),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Report'),
+        ],
       ),
     );
   }
+}
 
-  Widget _buildFeatureCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return Card(
-      elevation: 4,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.withOpacity(0.8), color],
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 48, color: Colors.white),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
+class _StatusLegend extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _StatusLegend({required this.color, required this.label});
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(Icons.circle, color: color, size: 16),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 14)),
+      ],
     );
   }
 }

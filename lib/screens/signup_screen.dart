@@ -13,6 +13,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  DateTime? _tanggalLahir;
 
   void _signup() {
     if (_formKey.currentState!.validate()) {
@@ -21,6 +22,20 @@ class _SignupScreenState extends State<SignupScreen> {
         context,
       ).showSnackBar(const SnackBar(content: Text('Akun berhasil dibuat!')));
       Navigator.pushReplacementNamed(context, '/login');
+    }
+  }
+
+  Future<void> _pickTanggalLahir() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _tanggalLahir = picked;
+      });
     }
   }
 
@@ -54,13 +69,13 @@ class _SignupScreenState extends State<SignupScreen> {
                 TextFormField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
-                    labelText: 'Username',
+                    labelText: 'Nama Lengkap',
                     border: OutlineInputBorder(),
                     prefixIcon: Icon(Icons.person),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter username';
+                      return 'Masukkan nama lengkap';
                     }
                     return null;
                   },
@@ -75,13 +90,39 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter email';
+                      return 'Masukkan email';
                     }
                     if (!value.contains('@')) {
-                      return 'Please enter valid email';
+                      return 'Masukkan email yang valid';
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: _pickTanggalLahir,
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: InputDecoration(
+                        labelText: 'Tanggal Lahir',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.cake),
+                        hintText: 'Pilih tanggal lahir',
+                        suffixIcon: const Icon(Icons.calendar_today),
+                      ),
+                      validator: (value) {
+                        if (_tanggalLahir == null) {
+                          return 'Pilih tanggal lahir';
+                        }
+                        return null;
+                      },
+                      controller: TextEditingController(
+                        text: _tanggalLahir == null
+                            ? ''
+                            : '${_tanggalLahir!.day}/${_tanggalLahir!.month}/${_tanggalLahir!.year}',
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -94,7 +135,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter password';
+                      return 'Masukkan password';
                     }
                     if (value.length < 6) {
                       return 'Password minimal 6 karakter';
@@ -113,7 +154,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please confirm password';
+                      return 'Konfirmasi password';
                     }
                     if (value != _passwordController.text) {
                       return 'Password tidak sama';
