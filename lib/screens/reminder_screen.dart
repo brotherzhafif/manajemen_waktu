@@ -61,7 +61,6 @@ class _ReminderScreenState extends State<ReminderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Reminder (Tugas)')),
       body: Column(
         children: [
           Padding(
@@ -70,7 +69,7 @@ class _ReminderScreenState extends State<ReminderScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left),
+                  icon: const Icon(Icons.chevron_left, color: Colors.blue),
                   onPressed: () => _changeMonth(-1),
                 ),
                 Text(
@@ -78,10 +77,11 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Colors.blue,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right),
+                  icon: const Icon(Icons.chevron_right, color: Colors.blue),
                   onPressed: () => _changeMonth(1),
                 ),
               ],
@@ -112,6 +112,10 @@ class _ReminderScreenState extends State<ReminderScreen> {
                   );
                 }
                 return ListView.separated(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 8,
+                  ),
                   itemCount: tasks.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (context, i) {
@@ -122,45 +126,54 @@ class _ReminderScreenState extends State<ReminderScreen> {
                       'd MMMM yyyy HH:mm',
                       'id_ID',
                     ).format(date);
-                    return ListTile(
-                      leading: const Icon(
-                        Icons.notifications,
-                        color: Colors.orange,
+                    return Card(
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      title: Text(t.title),
-                      subtitle: Text(
-                        '$hari, $tanggal\nPrioritas: ${t.priority}',
-                      ),
-                      isThreeLine: true,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () async {
-                          final confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (ctx) => AlertDialog(
-                              title: const Text('Konfirmasi'),
-                              content: const Text(
-                                'Apakah anda yakin ingin menghapus tugas ini?',
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, false),
-                                  child: const Text('Batal'),
+                      child: ListTile(
+                        leading: const Icon(
+                          Icons.notifications,
+                          color: Colors.orange,
+                        ),
+                        title: Text(
+                          t.title,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          '$hari, $tanggal\nPrioritas: ${t.priority}',
+                        ),
+                        isThreeLine: true,
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('Konfirmasi'),
+                                content: const Text(
+                                  'Apakah anda yakin ingin menghapus tugas ini?',
                                 ),
-                                TextButton(
-                                  onPressed: () => Navigator.pop(ctx, true),
-                                  child: const Text(
-                                    'Hapus',
-                                    style: TextStyle(color: Colors.red),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, false),
+                                    child: const Text('Batal'),
                                   ),
-                                ),
-                              ],
-                            ),
-                          );
-                          if (confirm == true) {
-                            await _deleteTask(t.id!);
-                          }
-                        },
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text(
+                                      'Hapus',
+                                      style: TextStyle(color: Colors.red),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await _deleteTask(t.id!);
+                            }
+                          },
+                        ),
                       ),
                     );
                   },

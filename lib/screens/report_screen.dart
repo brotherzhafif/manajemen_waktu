@@ -56,7 +56,6 @@ class _ReportScreenState extends State<ReportScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan Statistik')),
       body: Column(
         children: [
           Padding(
@@ -65,7 +64,7 @@ class _ReportScreenState extends State<ReportScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.chevron_left),
+                  icon: const Icon(Icons.chevron_left, color: Colors.blue),
                   onPressed: () => _changeMonth(-1),
                 ),
                 Text(
@@ -73,10 +72,11 @@ class _ReportScreenState extends State<ReportScreen> {
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: Colors.blue,
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.chevron_right),
+                  icon: const Icon(Icons.chevron_right, color: Colors.blue),
                   onPressed: () => _changeMonth(1),
                 ),
               ],
@@ -151,6 +151,7 @@ class _ReportScreenState extends State<ReportScreen> {
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Colors.blue,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -165,7 +166,7 @@ class _ReportScreenState extends State<ReportScreen> {
                     const SizedBox(height: 24),
                     Text(
                       'Persentase Selesai: ${total == 0 ? 0 : ((selesai / total) * 100).toStringAsFixed(1)}%',
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 16, color: Colors.blue),
                     ),
                   ],
                 );

@@ -67,14 +67,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildHomeTab() {
     return Column(
       children: [
-        // Selector bulan
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left),
+                icon: const Icon(Icons.chevron_left, color: Colors.blue),
                 onPressed: () => _changeMonth(-1),
               ),
               Text(
@@ -82,16 +81,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
+                  color: Colors.blue,
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right),
+                icon: const Icon(Icons.chevron_right, color: Colors.blue),
                 onPressed: () => _changeMonth(1),
               ),
             ],
           ),
         ),
-        // Statistik status
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
           child: Row(
@@ -102,7 +101,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ],
           ),
         ),
-        // List tugas
         Expanded(
           child: FutureBuilder<List<Task>>(
             future: _tasksFuture,
@@ -113,7 +111,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (!snapshot.hasData) {
                 return const Center(child: Text('Tidak ada tugas.'));
               }
-              // Filter berdasarkan bulan aktif
               final tasks = snapshot.data!
                   .where(
                     (t) =>
@@ -127,6 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 );
               }
               return ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
                 itemCount: tasks.length,
                 separatorBuilder: (_, __) => const Divider(height: 1),
                 itemBuilder: (context, i) {
@@ -137,32 +135,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     'd MMMM yyyy',
                     'id_ID',
                   ).format(date).toUpperCase();
-                  return ListTile(
-                    leading: GestureDetector(
-                      onTap: () => _toggleStatus(t),
-                      child: Icon(
-                        Icons.circle,
-                        color: t.isCompleted ? Colors.green : Colors.red,
-                      ),
+                  return Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    title: Text(t.title),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          tanggal,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    child: ListTile(
+                      leading: GestureDetector(
+                        onTap: () => _toggleStatus(t),
+                        child: Icon(
+                          Icons.circle,
+                          color: t.isCompleted ? Colors.green : Colors.red,
                         ),
-                        Text(hari, style: const TextStyle(fontSize: 12)),
-                      ],
-                    ),
-                    trailing: Checkbox(
-                      value: t.isCompleted,
-                      onChanged: (_) => _toggleStatus(t),
-                      activeColor: Colors.green,
+                      ),
+                      title: Text(
+                        t.title,
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tanggal,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue,
+                            ),
+                          ),
+                          Text(hari, style: const TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                      trailing: Checkbox(
+                        value: t.isCompleted,
+                        onChanged: (_) => _toggleStatus(t),
+                        activeColor: Colors.green,
+                      ),
                     ),
                   );
                 },
@@ -185,18 +193,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     Widget body;
+    String appBarTitle;
     if (_selectedIndex == 0) {
       body = _buildHomeTab();
+      appBarTitle = 'Dashboard';
     } else if (_selectedIndex == 1) {
       body = _buildReminderTab();
+      appBarTitle = 'Reminder';
     } else {
       body = _buildReportTab();
+      appBarTitle = 'Report';
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dashboard'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(appBarTitle),
+        backgroundColor: Colors.blue,
         actions: [
           IconButton(
             onPressed: () {
