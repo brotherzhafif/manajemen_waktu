@@ -57,44 +57,75 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       _isLoading = true;
       _errorMsg = null;
     });
-    // Ganti userId sesuai login
-    final int userId = 1;
-    final task = Task(
-      title: _titleController.text,
-      description: _descController.text,
-      startTime: _selectedDateTime!,
-      endTime: _selectedDateTime!.add(const Duration(hours: 1)),
-      priority: _priority,
-      userId: userId,
-      isCompleted: false,
-    );
-    final taskId = await TaskRepository().createTask(task);
 
-    // Jadwalkan notifikasi 3 jam sebelum deadline
-    final notifTime = _selectedDateTime!.add(const Duration(hours: 3));
-    if (notifTime.isAfter(DateTime.now())) {
-      await NotificationService().scheduleNotification(
-        id: taskId * 10 + 1,
-        title: 'Pengingat Tugas',
-        body: 'Tugas "${task.title}" akan berakhir 3 jam lagi!',
-        scheduledTime: notifTime,
-        sound: false,
+    try {
+      // Ganti userId sesuai login
+      final int userId = 1;
+      final task = Task(
+        title: _titleController.text,
+        description: _descController.text,
+        startTime: _selectedDateTime!,
+        endTime: _selectedDateTime!.add(const Duration(hours: 1)),
+        priority: _priority,
+        userId: userId,
+        isCompleted: false,
       );
-    }
-    // Jadwalkan notifikasi alarm 1 jam sebelum deadline
-    final alarmTime = _selectedDateTime!.add(const Duration(hours: 1));
-    if (alarmTime.isAfter(DateTime.now())) {
+      final taskId = await TaskRepository().createTask(task);
+
+      // Pastikan notifikasi muncul segera (yang akan muncul di system tray)
+      await NotificationService().showNotification(
+        id: taskId,
+        title: 'Tugas Baru Ditambahkan',
+        body:
+            '${task.title} - ${_selectedDateTime!.hour.toString().padLeft(2, '0')}:${_selectedDateTime!.minute.toString().padLeft(2, '0')}',
+        sound: true, // Aktifkan suara
+        payload: 'task_$taskId', // payload untuk navigasi saat notif diklik
+      );
+
+      // Jadwalkan notifikasi pengingat 1 jam sebelum waktu mulai tugas
+      if (_selectedDateTime!.isAfter(
+        DateTime.now().add(const Duration(hours: 1)),
+      )) {
+        final reminderTime = _selectedDateTime!.subtract(
+          const Duration(hours: 1),
+        );
+        await NotificationService().scheduleNotification(
+          id: taskId * 100 + 1, // pastikan ID unik
+          title: 'Pengingat: ${task.title}',
+          body: 'Tugas dimulai dalam 1 jam lagi. Klik untuk melihat detail.',
+          scheduledTime: reminderTime,
+          sound: true,
+          payload: 'task_$taskId',
+        );
+      }
+
+      // Jadwalkan notifikasi pada waktu mulai tugas
       await NotificationService().scheduleNotification(
-        id: taskId * 10 + 2,
-        title: 'Alarm Tugas',
-        body: 'Tugas "${task.title}" akan berakhir 1 jam lagi!',
-        scheduledTime: alarmTime,
+        id: taskId * 100 + 2,
+        title: 'Tugas Dimulai: ${task.title}',
+        body: 'Waktu untuk memulai tugas ${task.title}',
+        scheduledTime: _selectedDateTime!,
         sound: true,
+        payload: 'task_$taskId',
       );
-    }
 
-    setState(() => _isLoading = false);
-    if (mounted) Navigator.pop(context, true);
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Tugas berhasil ditambahkan! Notifikasi akan muncul.',
+            ),
+          ),
+        );
+        Navigator.pop(context, true);
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMsg = "Gagal menyimpan tugas: $e";
+      });
+    }
   }
 
   @override

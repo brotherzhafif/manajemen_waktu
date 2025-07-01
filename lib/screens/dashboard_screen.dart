@@ -3,6 +3,7 @@ import '../repositories/task_repository.dart';
 import '../models/task_model.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import '../services/notification_service.dart';
 import 'reminder_screen.dart';
 import 'report_screen.dart';
 
@@ -209,19 +210,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text(appBarTitle),
         backgroundColor: Colors.blue,
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-          ),
-        ],
+        // actions: [
+        //   IconButton(
+        //     onPressed: () => _testNotification(),
+        //     icon: const Icon(Icons.notifications_active),
+        //     tooltip: 'Tes Notifikasi',
+        //   ),
+        //   // Tambahkan menu untuk debugging
+        //   PopupMenuButton(
+        //     icon: const Icon(Icons.more_vert),
+        //     itemBuilder: (context) => [
+        //       const PopupMenuItem(
+        //         value: 'debug',
+        //         child: Text('Debug Notifikasi'),
+        //       ),
+        //       const PopupMenuItem(value: 'logout', child: Text('Logout')),
+        //     ],
+        //     onSelected: (value) {
+        //       if (value == 'debug') {
+        //         Navigator.pushNamed(context, '/debug-notifikasi');
+        //       } else if (value == 'logout') {
+        //         Navigator.pushReplacementNamed(context, '/login');
+        //       }
+        //     },
+        //   ),
+        // ],
       ),
       body: body,
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
+              tooltip: 'Tambah Tugas',
               onPressed: () async {
                 final result = await Navigator.pushNamed(
                   context,
@@ -233,7 +251,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 }
               },
               child: const Icon(Icons.add),
-              tooltip: 'Tambah Tugas',
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(
@@ -253,6 +270,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
+  }
+
+  // Fungsi untuk menguji notifikasi
+  Future<void> _testNotification() async {
+    try {
+      debugPrint('🔔 Mengirim notifikasi test...');
+
+      // Kirim notifikasi langsung untuk testing
+      await NotificationService().showNotification(
+        id: 9999,
+        title: 'Tes Notifikasi',
+        body:
+            'Jika Anda melihat notifikasi ini, sistem notifikasi berfungsi! ${DateTime.now().toString()}',
+        sound: true,
+        payload: 'test_notification',
+      );
+
+      // Juga kirim notifikasi terjadwal 10 detik dari sekarang
+      final scheduledTime = DateTime.now().add(const Duration(seconds: 10));
+      await NotificationService().scheduleNotification(
+        id: 9998,
+        title: 'Tes Notifikasi Terjadwal',
+        body:
+            'Notifikasi terjadwal 10 detik. Waktu: ${scheduledTime.toString()}',
+        scheduledTime: scheduledTime,
+        sound: true,
+        payload: 'test_scheduled',
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Notifikasi test dikirim! Cek status bar atau tutup aplikasi untuk melihat.',
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ Error saat mengirim notifikasi: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
   }
 }
 
