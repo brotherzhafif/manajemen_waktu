@@ -210,31 +210,43 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text(appBarTitle),
         backgroundColor: Colors.blue,
-        // actions: [
-        //   IconButton(
-        //     onPressed: () => _testNotification(),
-        //     icon: const Icon(Icons.notifications_active),
-        //     tooltip: 'Tes Notifikasi',
-        //   ),
-        //   // Tambahkan menu untuk debugging
-        //   PopupMenuButton(
-        //     icon: const Icon(Icons.more_vert),
-        //     itemBuilder: (context) => [
-        //       const PopupMenuItem(
-        //         value: 'debug',
-        //         child: Text('Debug Notifikasi'),
-        //       ),
-        //       const PopupMenuItem(value: 'logout', child: Text('Logout')),
-        //     ],
-        //     onSelected: (value) {
-        //       if (value == 'debug') {
-        //         Navigator.pushNamed(context, '/debug-notifikasi');
-        //       } else if (value == 'logout') {
-        //         Navigator.pushReplacementNamed(context, '/login');
-        //       }
-        //     },
-        //   ),
-        // ],
+        actions: [
+          // IconButton(
+          //   onPressed: () => _testNotification(),
+          //   icon: const Icon(Icons.notifications_active),
+          //   tooltip: 'Tes Notifikasi',
+          // ),
+          // Tambahkan menu untuk manajemen user dan debugging
+          PopupMenuButton(
+            icon: const Icon(Icons.more_vert),
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Text('Profil Pengguna'),
+              ),
+              const PopupMenuItem(
+                value: 'admin',
+                child: Text('Manajemen Pengguna'),
+              ),
+              const PopupMenuItem(
+                value: 'debug',
+                child: Text('Debug Notifikasi'),
+              ),
+              const PopupMenuItem(value: 'logout', child: Text('Logout')),
+            ],
+            onSelected: (value) {
+              if (value == 'profile') {
+                Navigator.pushNamed(context, '/manajemen-user');
+              } else if (value == 'admin') {
+                Navigator.pushNamed(context, '/admin-users');
+              } else if (value == 'debug') {
+                Navigator.pushNamed(context, '/debug-notifikasi');
+              } else if (value == 'logout') {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
+          ),
+        ],
       ),
       body: body,
       floatingActionButton: _selectedIndex == 0

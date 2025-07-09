@@ -13,6 +13,12 @@ class AuthService {
 
   User? get currentUser => _currentUser;
   bool get isLoggedIn => _currentUser != null;
+  
+  // Metode untuk memperbarui data user saat ini
+  Future<void> updateCurrentUser(User user) async {
+    _currentUser = user;
+    await _saveUserSession(user);
+  }
 
   Future<bool> login(String email, String password) async {
     final user = await _userRepository.authenticateUser(email, password);

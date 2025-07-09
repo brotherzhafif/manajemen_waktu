@@ -9,6 +9,8 @@ import 'screens/report_screen.dart';
 import 'services/notification_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'screens/notification_debug_screen.dart';
+import 'screens/user_management_screen.dart';
+import 'screens/admin_user_list_screen.dart';
 
 Future<void> requestNotificationPermission() async {
   debugPrint('🔔 Requesting notification permissions...');
@@ -126,6 +128,10 @@ class MyApp extends StatelessWidget {
         '/pengingat': (context) => const ReminderScreen(),
         '/laporan': (context) => const ReportScreen(),
         '/debug-notifikasi': (context) => const NotificationDebugScreen(),
+        '/manajemen-user': (context) => const UserManagementScreen(),
+        '/admin-users': (context) => const AdminUserListScreen(),
+        '/tambah-user': (context) => const UserManagementScreen(),
+        '/edit-user': (context) => const UserManagementScreen(),
       },
     );
   }
