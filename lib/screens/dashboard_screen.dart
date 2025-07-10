@@ -251,17 +251,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value: 'admin',
                 child: Text('Manajemen Pengguna'),
               ),
-              const PopupMenuItem(
-                value: 'debug',
-                child: Text('Debug Notifikasi'),
-              ),
               const PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
             onSelected: (value) {
               if (value == 'admin') {
                 Navigator.pushNamed(context, '/admin-users');
-              } else if (value == 'debug') {
-                Navigator.pushNamed(context, '/debug-notifikasi');
               } else if (value == 'logout') {
                 Navigator.pushReplacementNamed(context, '/login');
               }
