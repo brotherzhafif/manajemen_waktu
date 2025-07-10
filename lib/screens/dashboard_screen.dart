@@ -6,6 +6,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import '../services/notification_service.dart';
 import 'reminder_screen.dart';
 import 'report_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -191,6 +192,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return const ReportScreen();
   }
 
+  Widget _buildProfileTab() {
+    return const ProfileScreen();
+  }
+
   @override
   Widget build(BuildContext context) {
     Widget body;
@@ -201,9 +206,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     } else if (_selectedIndex == 1) {
       body = _buildReminderTab();
       appBarTitle = 'Reminder';
-    } else {
+    } else if (_selectedIndex == 2) {
       body = _buildReportTab();
       appBarTitle = 'Report';
+    } else {
+      body = _buildProfileTab();
+      appBarTitle = 'Profil';
     }
 
     return Scaffold(
@@ -221,10 +229,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.more_vert),
             itemBuilder: (context) => [
               const PopupMenuItem(
-                value: 'profile',
-                child: Text('Profil Pengguna'),
-              ),
-              const PopupMenuItem(
                 value: 'admin',
                 child: Text('Manajemen Pengguna'),
               ),
@@ -235,9 +239,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
             onSelected: (value) {
-              if (value == 'profile') {
-                Navigator.pushNamed(context, '/manajemen-user');
-              } else if (value == 'admin') {
+              if (value == 'admin') {
                 Navigator.pushNamed(context, '/admin-users');
               } else if (value == 'debug') {
                 Navigator.pushNamed(context, '/debug-notifikasi');
@@ -267,6 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           : null,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
+        type: BottomNavigationBarType.fixed,
         onTap: (idx) {
           setState(() {
             _selectedIndex = idx;
@@ -279,6 +282,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             label: 'Reminder',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Report'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profil'),
         ],
       ),
     );

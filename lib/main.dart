@@ -11,6 +11,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'screens/notification_debug_screen.dart';
 import 'screens/user_management_screen.dart';
 import 'screens/admin_user_list_screen.dart';
+import 'screens/profile_screen.dart';
 
 Future<void> requestNotificationPermission() async {
   debugPrint('🔔 Requesting notification permissions...');
@@ -132,6 +133,7 @@ class MyApp extends StatelessWidget {
         '/admin-users': (context) => const AdminUserListScreen(),
         '/tambah-user': (context) => const UserManagementScreen(),
         '/edit-user': (context) => const UserManagementScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }
