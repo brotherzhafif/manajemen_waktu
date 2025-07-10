@@ -30,7 +30,7 @@ class AuthService {
     return false;
   }
 
-  Future<bool> register(String username, String email, String password) async {
+  Future<bool> register(String username, String email, String password, {DateTime? tanggalLahir}) async {
     // Check if email or username already exists
     if (await _userRepository.isEmailExists(email)) {
       return false;
@@ -39,7 +39,12 @@ class AuthService {
       return false;
     }
 
-    final user = User(username: username, email: email, password: password);
+    final user = User(
+      username: username, 
+      email: email, 
+      password: password,
+      tanggalLahir: tanggalLahir
+    );
 
     try {
       final userId = await _userRepository.createUser(user);
@@ -62,6 +67,11 @@ class AuthService {
     await prefs.setInt('userId', user.id!);
     await prefs.setString('username', user.username);
     await prefs.setString('email', user.email);
+    
+    // Simpan tanggal lahir jika ada
+    if (user.tanggalLahir != null) {
+      await prefs.setInt('tanggalLahir', user.tanggalLahir!.millisecondsSinceEpoch);
+    }
   }
 
   Future<bool> loadUserSession() async {
@@ -69,6 +79,12 @@ class AuthService {
     final userId = prefs.getInt('userId');
     final username = prefs.getString('username');
     final email = prefs.getString('email');
+    final tanggalLahirMillis = prefs.getInt('tanggalLahir');
+    
+    DateTime? tanggalLahir;
+    if (tanggalLahirMillis != null) {
+      tanggalLahir = DateTime.fromMillisecondsSinceEpoch(tanggalLahirMillis);
+    }
 
     if (userId != null && username != null && email != null) {
       _currentUser = User(
@@ -76,6 +92,7 @@ class AuthService {
         username: username,
         email: email,
         password: '', // Don't store password in session
+        tanggalLahir: tanggalLahir,
       );
       return true;
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,6 +14,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authService = AuthService();
   DateTime? _tanggalLahir;
   bool _isLoading = false;
   String? _errorMsg;
@@ -23,20 +25,34 @@ class _SignupScreenState extends State<SignupScreen> {
       _isLoading = true;
       _errorMsg = null;
     });
-    // Simulasi register, ganti dengan AuthService jika ada
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (_emailController.text == "fail@email.com") {
+    
+    try {
+      final success = await _authService.register(
+        _usernameController.text,
+        _emailController.text,
+        _passwordController.text,
+        tanggalLahir: _tanggalLahir,
+      );
+      
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Akun berhasil dibuat!')),
+          );
+          // Langsung arahkan ke dashboard karena register juga melakukan login
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMsg = "Email atau username sudah terdaftar!";
+        });
+      }
+    } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMsg = "Email sudah terdaftar!";
+        _errorMsg = "Terjadi kesalahan: $e";
       });
-      return;
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Akun berhasil dibuat!')));
-      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 

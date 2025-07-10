@@ -28,19 +28,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
+      // Coba load session user terlebih dahulu jika belum ada currentUser
+      if (_authService.currentUser == null) {
+        await _authService.loadUserSession();
+      }
+      
       // Mendapatkan data user yang sedang login
       final currentUser = _authService.currentUser;
+      
+      if (currentUser == null) {
+        // Jika masih null, mungkin user belum login
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Silakan login terlebih dahulu')),
+          );
+          Navigator.pushReplacementNamed(context, '/login');
+        }
+        return;
+      }
+      
       setState(() {
         _currentUser = currentUser;
       });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -137,6 +158,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _buildInfoRow(Icons.person, 'Username', _currentUser!.username),
                         const Divider(),
                         _buildInfoRow(Icons.email, 'Email', _currentUser!.email),
+                        const Divider(),
+                        _buildInfoRow(
+                          Icons.cake, 
+                          'Tanggal Lahir', 
+                          _currentUser!.tanggalLahir != null
+                            ? '${_currentUser!.tanggalLahir!.day}/${_currentUser!.tanggalLahir!.month}/${_currentUser!.tanggalLahir!.year}'
+                            : 'Belum diatur'
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),

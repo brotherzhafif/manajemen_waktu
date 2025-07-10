@@ -21,6 +21,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   bool _isEditing = false;
   int? _editingUserId;
   String? _errorMsg;
+  DateTime? _tanggalLahir;
 
   @override
   void initState() {
@@ -29,6 +30,20 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadUserData();
     });
+  }
+
+  Future<void> _pickTanggalLahir() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _tanggalLahir ?? DateTime(2000, 1, 1),
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null) {
+      setState(() {
+        _tanggalLahir = picked;
+      });
+    }
   }
 
   Future<void> _loadUserData() async {
@@ -51,6 +66,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             _usernameController.text = user.username;
             _emailController.text = user.email;
             _editingUserId = user.id;
+            _tanggalLahir = user.tanggalLahir;
             _isEditing = true;
           });
         }
@@ -62,6 +78,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             _usernameController.text = currentUser.username;
             _emailController.text = currentUser.email;
             _editingUserId = currentUser.id;
+            _tanggalLahir = currentUser.tanggalLahir;
             _isEditing = true;
           });
         }
@@ -95,6 +112,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           password: _passwordController.text.isNotEmpty
               ? _passwordController.text
               : _authService.currentUser?.password ?? '',
+          tanggalLahir: _tanggalLahir,
         );
 
         // Menggunakan metode updateUser dari UserRepository
@@ -114,6 +132,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           username: _usernameController.text,
           email: _emailController.text,
           password: _passwordController.text,
+          tanggalLahir: _tanggalLahir,
         );
 
         // Check if email already exists
@@ -143,6 +162,9 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
         _usernameController.clear();
         _emailController.clear();
         _passwordController.clear();
+        setState(() {
+          _tanggalLahir = null;
+        });
         
         // Jika halaman ini dibuka dari halaman admin, kembali ke halaman admin
         final Map<String, dynamic>? args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -237,6 +259,25 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                     }
                     return null;
                   },
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: _pickTanggalLahir,
+                  child: AbsorbPointer(
+                    child: TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'Tanggal Lahir',
+                        prefixIcon: Icon(Icons.cake),
+                        hintText: 'Pilih tanggal lahir',
+                        suffixIcon: Icon(Icons.calendar_today),
+                      ),
+                      controller: TextEditingController(
+                        text: _tanggalLahir == null
+                            ? ''
+                            : '${_tanggalLahir!.day}/${_tanggalLahir!.month}/${_tanggalLahir!.year}',
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

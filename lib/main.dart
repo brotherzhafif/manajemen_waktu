@@ -7,6 +7,7 @@ import 'screens/task_list_screen.dart';
 import 'screens/reminder_screen.dart';
 import 'screens/report_screen.dart';
 import 'services/notification_service.dart';
+import 'services/auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'screens/notification_debug_screen.dart';
 import 'screens/user_management_screen.dart';
@@ -59,6 +60,15 @@ void main() async {
     await requestNotificationPermission();
   } catch (e) {
     debugPrint('❌ Error requesting permissions: $e');
+  }
+  
+  // Coba load session user
+  try {
+    debugPrint('👤 Loading user session...');
+    await AuthService().loadUserSession();
+    debugPrint('✅ User session loaded');
+  } catch (e) {
+    debugPrint('❌ Error loading user session: $e');
   }
 
   debugPrint('🚀 Starting app...');
@@ -119,7 +129,7 @@ class MyApp extends StatelessWidget {
           color: Colors.blue,
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: AuthService().isLoggedIn ? '/dashboard' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),

@@ -4,6 +4,7 @@ import '../models/task_model.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import '../services/notification_service.dart';
+import '../services/auth_service.dart';
 import 'reminder_screen.dart';
 import 'report_screen.dart';
 import 'profile_screen.dart';
@@ -19,17 +20,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   DateTime _activeMonth = DateTime(DateTime.now().year, DateTime.now().month);
   late Future<List<Task>> _tasksFuture;
+  final AuthService _authService = AuthService();
 
   @override
   void initState() {
     super.initState();
     initializeDateFormatting('id_ID', null);
+    _checkUserSession();
+  }
+  
+  Future<void> _checkUserSession() async {
+    // Cek apakah ada sesi user yang tersimpan
+    if (_authService.currentUser == null) {
+      final hasSession = await _authService.loadUserSession();
+      if (!hasSession && mounted) {
+        // Jika tidak ada sesi, arahkan ke halaman login
+        Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+    }
     _loadTasks();
   }
 
   void _loadTasks() {
-    // Ganti userId sesuai login
-    _tasksFuture = TaskRepository().getTasksByUserId(1);
+    if (_authService.currentUser != null && _authService.currentUser!.id != null) {
+      _tasksFuture = TaskRepository().getTasksByUserId(_authService.currentUser!.id!);
+    } else {
+      // Fallback jika tidak ada user yang login
+      _tasksFuture = Future.value([]);
+    }
   }
 
   void _changeMonth(int delta) {

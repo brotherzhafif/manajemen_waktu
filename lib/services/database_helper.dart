@@ -17,7 +17,19 @@ class DatabaseHelper {
 
   Future<Database> _initDatabase() async {
     String path = join(await getDatabasesPath(), 'time_management.db');
-    return await openDatabase(path, version: 1, onCreate: _onCreate);
+    return await openDatabase(
+      path, 
+      version: 2, 
+      onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+    );
+  }
+  
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      // Tambahkan kolom tanggal_lahir ke tabel users jika upgrade dari versi 1 ke 2
+      await db.execute('ALTER TABLE users ADD COLUMN tanggal_lahir INTEGER;');
+    }
   }
 
   Future<void> _onCreate(Database db, int version) async {
@@ -26,7 +38,8 @@ class DatabaseHelper {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        tanggal_lahir INTEGER
       )
     ''');
 
