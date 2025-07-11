@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -6,12 +8,14 @@ import 'screens/add_task_screen.dart';
 import 'screens/task_list_screen.dart';
 import 'screens/reminder_screen.dart';
 import 'screens/report_screen.dart';
-import 'services/notification_service.dart';
-import 'services/auth_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'screens/user_management_screen.dart';
 import 'screens/admin_user_list_screen.dart';
 import 'screens/profile_screen.dart';
+import 'services/notification_service.dart';
+import 'services/auth_service.dart';
+import 'repositories/user_repository.dart';
+import 'models/user_model.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 Future<void> requestNotificationPermission() async {
   debugPrint('🔔 Requesting notification permissions...');
@@ -36,46 +40,62 @@ Future<void> requestNotificationPermission() async {
   }
 }
 
-void main() async {
-  // Add debug log
-  debugPrint('🚀 App starting...');
-
-  // Ensure initialized before accessing native code
-  WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('✅ Flutter initialized');
-
-  // Initialize notification service
-  try {
-    debugPrint('🔔 Initializing NotificationService...');
-    await NotificationService().init();
-    debugPrint('✅ NotificationService initialized');
-  } catch (e) {
-    debugPrint('❌ Error initializing NotificationService: $e');
-  }
-
-  // Request notification permission with enhanced logging
-  try {
-    debugPrint('🔔 Requesting notification permissions...');
-    await requestNotificationPermission();
-  } catch (e) {
-    debugPrint('❌ Error requesting permissions: $e');
-  }
+// Fungsi untuk membuat akun admin default jika belum ada
+Future<void> createDefaultAdminAccount() async {
+  debugPrint('👤 Checking for default admin account...');
+  final userRepository = UserRepository();
+  final String adminEmail = 'admin@admin.com';
+  final String adminPassword = '12345';
   
-  // Coba load session user
-  try {
-    debugPrint('👤 Loading user session...');
-    await AuthService().loadUserSession();
-    debugPrint('✅ User session loaded');
-  } catch (e) {
-    debugPrint('❌ Error loading user session: $e');
+  // Cek apakah akun admin sudah ada
+  final existingAdmin = await userRepository.getUserByEmail(adminEmail);
+  
+  // Jika belum ada, buat akun admin baru
+  if (existingAdmin == null) {
+    debugPrint('👤 Creating default admin account...');
+    final adminUser = User(
+      username: 'Administrator',
+      email: adminEmail,
+      password: adminPassword,
+      role: 'admin',
+    );
+    
+    await userRepository.createUser(adminUser);
+    debugPrint('✅ Default admin account created');
+  } else {
+    // Jika sudah ada tapi bukan admin, update role menjadi admin
+    if (existingAdmin.role != 'admin') {
+      final updatedAdmin = existingAdmin.copyWith(role: 'admin');
+      await userRepository.updateUser(updatedAdmin);
+      debugPrint('✅ Default admin account role updated to admin');
+    } else {
+      debugPrint('✅ Default admin account already exists');
+    }
   }
+}
 
-  debugPrint('🚀 Starting app...');
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  // Inisialisasi layanan notifikasi
+  final notificationService = NotificationService();
+  await notificationService.init();
+  tz.initializeTimeZones();
+  
+  // Inisialisasi layanan autentikasi dan coba muat sesi pengguna
+  final authService = AuthService();
+  await authService.loadUserSession();
+  
+  // Buat akun admin default jika belum ada
+  await createDefaultAdminAccount();
+  
+  runApp(MyApp(authService: authService));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AuthService authService;
+  
+  const MyApp({super.key, required this.authService});
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +148,7 @@ class MyApp extends StatelessWidget {
           color: Colors.blue,
         ),
       ),
-      initialRoute: AuthService().isLoggedIn ? '/dashboard' : '/login',
+      initialRoute: authService.isLoggedIn ? '/dashboard' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),

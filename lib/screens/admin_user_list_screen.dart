@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../repositories/user_repository.dart';
+import '../services/auth_service.dart';
 
 class AdminUserListScreen extends StatefulWidget {
   const AdminUserListScreen({super.key});
@@ -18,7 +19,22 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    _checkAdminAccess();
+  }
+  
+  void _checkAdminAccess() {
+    final authService = AuthService();
+    if (authService.currentUser?.role != 'admin') {
+      // Jika bukan admin, kembali ke halaman sebelumnya
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Akses ditolak. Hanya admin yang dapat mengakses halaman ini.')),
+        );
+        Navigator.pop(context);
+      });
+    } else {
+      _loadUsers();
+    }
   }
 
   Future<void> _loadUsers() async {
@@ -148,7 +164,19 @@ class _AdminUserListScreenState extends State<AdminUserListScreen> {
                               ),
                             ),
                             title: Text(user.username),
-                            subtitle: Text(user.email),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(user.email),
+                                Text(
+                                  'Peran: ${user.role}',
+                                  style: TextStyle(
+                                    color: user.role == 'admin' ? Colors.red : Colors.blue,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [

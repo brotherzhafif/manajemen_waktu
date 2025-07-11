@@ -246,17 +246,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           // Tambahkan menu untuk manajemen user dan debugging
           PopupMenuButton(
             icon: const Icon(Icons.more_vert),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'admin',
-                child: Text('Manajemen Pengguna'),
-              ),
-              const PopupMenuItem(value: 'logout', child: Text('Logout')),
-            ],
+            itemBuilder: (context) {
+              final List<PopupMenuEntry<String>> menuItems = [];
+              
+              // Tampilkan menu Manajemen Pengguna hanya untuk admin
+              if (_authService.currentUser?.role == 'admin') {
+                menuItems.add(
+                  const PopupMenuItem(
+                    value: 'admin',
+                    child: Text('Manajemen Pengguna'),
+                  ),
+                );
+              }
+              
+              // Menu logout untuk semua pengguna
+              menuItems.add(
+                const PopupMenuItem(value: 'logout', child: Text('Logout')),
+              );
+              
+              return menuItems;
+            },
             onSelected: (value) {
               if (value == 'admin') {
                 Navigator.pushNamed(context, '/admin-users');
               } else if (value == 'logout') {
+                _authService.logout();
                 Navigator.pushReplacementNamed(context, '/login');
               }
             },

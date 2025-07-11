@@ -30,7 +30,7 @@ class AuthService {
     return false;
   }
 
-  Future<bool> register(String username, String email, String password, {DateTime? tanggalLahir}) async {
+  Future<bool> register(String username, String email, String password, {DateTime? tanggalLahir, String role = 'user'}) async {
     // Check if email or username already exists
     if (await _userRepository.isEmailExists(email)) {
       return false;
@@ -43,7 +43,8 @@ class AuthService {
       username: username, 
       email: email, 
       password: password,
-      tanggalLahir: tanggalLahir
+      tanggalLahir: tanggalLahir,
+      role: role
     );
 
     try {
@@ -67,6 +68,7 @@ class AuthService {
     await prefs.setInt('userId', user.id!);
     await prefs.setString('username', user.username);
     await prefs.setString('email', user.email);
+    await prefs.setString('role', user.role);
     
     // Simpan tanggal lahir jika ada
     if (user.tanggalLahir != null) {
@@ -79,6 +81,7 @@ class AuthService {
     final userId = prefs.getInt('userId');
     final username = prefs.getString('username');
     final email = prefs.getString('email');
+    final role = prefs.getString('role') ?? 'user';
     final tanggalLahirMillis = prefs.getInt('tanggalLahir');
     
     DateTime? tanggalLahir;
@@ -93,6 +96,7 @@ class AuthService {
         email: email,
         password: '', // Don't store password in session
         tanggalLahir: tanggalLahir,
+        role: role,
       );
       return true;
     }
