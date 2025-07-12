@@ -4,7 +4,7 @@ class User {
   final String email;
   final String password;
   final DateTime? tanggalLahir;
-  final String role; // 'admin' atau 'user'
+  final String role; // Always 'user' - admin functionality removed
 
   User({
     this.id,

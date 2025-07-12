@@ -23,7 +23,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   int? _editingUserId;
   String? _errorMsg;
   DateTime? _tanggalLahir;
-  String _selectedRole = 'user'; // Default role adalah 'user'
+  String _selectedRole = 'user'; // Default role adalah 'user' (role tidak dapat diubah)
 
   @override
   void initState() {
@@ -74,8 +74,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
             _isEditing = true;
           });
         }
-      } else if (args == null || !args.containsKey('isAdmin')) {
-        // Jika tidak ada parameter atau bukan dari halaman admin, muat data pengguna yang sedang login
+      } else if (args == null) {
+        // Jika tidak ada parameter, muat data pengguna yang sedang login
         final currentUser = _authService.currentUser;
         if (currentUser != null) {
           setState(() {
@@ -88,7 +88,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           });
         }
       } else {
-        // Jika dari halaman admin tapi tidak ada userId, ini adalah tambah pengguna baru
+        // Jika tidak ada userId, ini adalah tambah pengguna baru
         setState(() {
           _usernameController.clear();
           _emailController.clear();
@@ -193,12 +193,8 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
           _tanggalLahir = null;
         });
 
-        // Jika halaman ini dibuka dari halaman admin, kembali ke halaman admin
-        final Map<String, dynamic>? args =
-            ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-        if (args != null && args['isAdmin'] == true) {
-          Navigator.pop(context);
-        }
+        // Kembali ke halaman sebelumnya
+        Navigator.pop(context);
       }
     } catch (e) {
       setState(() {
@@ -216,7 +212,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     // Cek apakah ada parameter dari route
     final Map<String, dynamic>? args =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final bool isAdmin = args != null && args['isAdmin'] == true;
+    final bool isAdmin = false; // Remove admin functionality
     final String title = args != null && args['title'] != null
         ? args['title']
         : (_isEditing ? 'Edit Profil' : 'Daftar Akun');
@@ -273,29 +269,7 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
                         ],
                       ),
                     ),
-                  // Dropdown untuk pemilihan peran (hanya ditampilkan untuk admin)
-                  if (isAdmin)
-                    DropdownButtonFormField<String>(
-                      value: _selectedRole,
-                      decoration: const InputDecoration(
-                        labelText: 'Peran',
-                        prefixIcon: Icon(Icons.admin_panel_settings),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'user',
-                          child: Text('Pengguna'),
-                        ),
-                        DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                      ],
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedRole = value;
-                          });
-                        }
-                      },
-                    ),
+                  // Role selection removed - all users are 'user' role
                   const SizedBox(height: 16),
                   TextFormField(
                     controller: _usernameController,

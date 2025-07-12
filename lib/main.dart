@@ -9,7 +9,6 @@ import 'screens/task_list_screen.dart';
 import 'screens/reminder_screen.dart';
 import 'screens/report_screen.dart';
 import 'screens/user_management_screen.dart';
-import 'screens/admin_user_list_screen.dart';
 import 'screens/profile_screen.dart';
 import 'services/notification_service.dart';
 import 'services/auth_service.dart';
@@ -40,37 +39,30 @@ Future<void> requestNotificationPermission() async {
   }
 }
 
-// Fungsi untuk membuat akun admin default jika belum ada
-Future<void> createDefaultAdminAccount() async {
-  debugPrint('👤 Checking for default admin account...');
+// Fungsi untuk membuat akun user default jika belum ada
+Future<void> createDefaultUserAccount() async {
+  debugPrint('👤 Checking for default user account...');
   final userRepository = UserRepository();
-  final String adminEmail = 'admin@admin.com';
-  final String adminPassword = '12345';
+  final String userEmail = 'user@gmail.com';
+  final String userPassword = '12345';
   
-  // Cek apakah akun admin sudah ada
-  final existingAdmin = await userRepository.getUserByEmail(adminEmail);
+  // Cek apakah akun user sudah ada
+  final existingUser = await userRepository.getUserByEmail(userEmail);
   
-  // Jika belum ada, buat akun admin baru
-  if (existingAdmin == null) {
-    debugPrint('👤 Creating default admin account...');
-    final adminUser = User(
-      username: 'Administrator',
-      email: adminEmail,
-      password: adminPassword,
-      role: 'admin',
+  // Jika belum ada, buat akun user baru
+  if (existingUser == null) {
+    debugPrint('👤 Creating default user account...');
+    final defaultUser = User(
+      username: 'Default User',
+      email: userEmail,
+      password: userPassword,
+      role: 'user',
     );
     
-    await userRepository.createUser(adminUser);
-    debugPrint('✅ Default admin account created');
+    await userRepository.createUser(defaultUser);
+    debugPrint('✅ Default user account created');
   } else {
-    // Jika sudah ada tapi bukan admin, update role menjadi admin
-    if (existingAdmin.role != 'admin') {
-      final updatedAdmin = existingAdmin.copyWith(role: 'admin');
-      await userRepository.updateUser(updatedAdmin);
-      debugPrint('✅ Default admin account role updated to admin');
-    } else {
-      debugPrint('✅ Default admin account already exists');
-    }
+    debugPrint('✅ Default user account already exists');
   }
 }
 
@@ -86,8 +78,8 @@ void main() async {
   final authService = AuthService();
   await authService.loadUserSession();
   
-  // Buat akun admin default jika belum ada
-  await createDefaultAdminAccount();
+  // Buat akun user default jika belum ada
+  await createDefaultUserAccount();
   
   runApp(MyApp(authService: authService));
 }
@@ -158,7 +150,6 @@ class MyApp extends StatelessWidget {
         '/pengingat': (context) => const ReminderScreen(),
         '/laporan': (context) => const ReportScreen(),
         '/manajemen-user': (context) => const UserManagementScreen(),
-        '/admin-users': (context) => const AdminUserListScreen(),
         '/tambah-user': (context) => const UserManagementScreen(),
         '/edit-user': (context) => const UserManagementScreen(),
         '/profile': (context) => const ProfileScreen(),
