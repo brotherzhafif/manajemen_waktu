@@ -81,6 +81,9 @@ class FirebaseAuthService {
   Future<void> _loadUserProfile() async {
     if (_auth.currentUser != null) {
       try {
+        print(
+          '🔍 Auth: Loading profile for Firebase user: ${_auth.currentUser!.uid}',
+        );
         final doc = await _firestore
             .collection('users')
             .doc(_auth.currentUser!.uid)
@@ -88,9 +91,12 @@ class FirebaseAuthService {
 
         if (doc.exists) {
           _currentUser = User.fromFirestore(doc);
+          print('✅ Auth: User profile loaded, user ID: ${_currentUser!.id}');
+        } else {
+          print('❌ Auth: User profile document does not exist');
         }
       } catch (e) {
-        print('Error loading user profile: $e');
+        print('❌ Error loading user profile: $e');
       }
     }
   }

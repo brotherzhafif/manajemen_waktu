@@ -27,15 +27,23 @@ class FirebaseTaskRepository {
   // Get all tasks for a user
   Future<List<Task>> getTasksByUserId(String userId) async {
     try {
+      print('🔍 TaskRepository: Fetching tasks for user ID: $userId');
       final query = await _firestore
           .collection('tasks')
           .where('userId', isEqualTo: userId)
-          .orderBy('startTime', descending: false)
           .get();
 
-      return query.docs.map((doc) => Task.fromFirestore(doc)).toList();
+      print('🔍 TaskRepository: Found ${query.docs.length} tasks');
+      List<Task> tasks = query.docs
+          .map((doc) => Task.fromFirestore(doc))
+          .toList();
+
+      // Sort manually to avoid composite index requirement
+      tasks.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+      return tasks;
     } catch (e) {
-      print('Error getting tasks: $e');
+      print('❌ Error getting tasks: $e');
       return [];
     }
   }
@@ -54,10 +62,16 @@ class FirebaseTaskRepository {
             isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay),
           )
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-          .orderBy('startTime', descending: false)
           .get();
 
-      return query.docs.map((doc) => Task.fromFirestore(doc)).toList();
+      List<Task> tasks = query.docs
+          .map((doc) => Task.fromFirestore(doc))
+          .toList();
+
+      // Sort manually to avoid composite index requirement
+      tasks.sort((a, b) => a.startTime.compareTo(b.startTime));
+
+      return tasks;
     } catch (e) {
       print('Error getting tasks by date: $e');
       return [];

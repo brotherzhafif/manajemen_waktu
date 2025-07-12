@@ -45,10 +45,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void _loadTasks() {
     if (_authService.currentUser != null &&
         _authService.currentUser!.id != null) {
+      print(
+        '🔍 Dashboard: Loading tasks for user ID: ${_authService.currentUser!.id}',
+      );
       _tasksFuture = _taskRepository.getTasksByUserId(
         _authService.currentUser!.id!,
       );
     } else {
+      print('❌ Dashboard: No current user or user ID is null');
       _tasksFuture = Future.value([]);
     }
   }

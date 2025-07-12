@@ -22,6 +22,15 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   bool _isLoading = false;
   String? _errorMsg;
 
+  // Helper function to generate safe notification ID from string
+  int _generateNotificationId(String taskId, [int suffix = 0]) {
+    // Use simple hash function that keeps result within 32-bit integer range
+    int hash = taskId.hashCode.abs();
+    // Ensure it fits in 32-bit signed integer range [-2^31, 2^31-1]
+    hash = hash % (2147483647 - 1000); // Leave some room for suffix
+    return hash + suffix;
+  }
+
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
     final date = await showDatePicker(
@@ -86,7 +95,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       if (taskId != null) {
         // Pastikan notifikasi muncul segera (yang akan muncul di system tray)
         await NotificationService().showNotification(
-          id: taskId.hashCode,
+          id: _generateNotificationId(taskId),
           title: 'Tugas Baru Ditambahkan',
           body:
               '${task.title} - ${_selectedDateTime!.hour.toString().padLeft(2, '0')}:${_selectedDateTime!.minute.toString().padLeft(2, '0')}',
@@ -102,7 +111,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
             const Duration(hours: 1),
           );
           await NotificationService().scheduleNotification(
-            id: taskId.hashCode * 100 + 1, // pastikan ID unik
+            id: _generateNotificationId(taskId, 1), // pastikan ID unik
             title: 'Pengingat: ${task.title}',
             body: 'Tugas dimulai dalam 1 jam lagi. Klik untuk melihat detail.',
             scheduledTime: reminderTime,
@@ -113,7 +122,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
 
         // Jadwalkan notifikasi pada waktu mulai tugas
         await NotificationService().scheduleNotification(
-          id: taskId.hashCode * 100 + 2,
+          id: _generateNotificationId(taskId, 2),
           title: 'Tugas Dimulai: ${task.title}',
           body: 'Waktu untuk memulai tugas ${task.title}',
           scheduledTime: _selectedDateTime!,
