@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -13,6 +14,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _authService = FirebaseAuthService.instance;
   DateTime? _tanggalLahir;
   bool _isLoading = false;
   String? _errorMsg;
@@ -23,20 +25,49 @@ class _SignupScreenState extends State<SignupScreen> {
       _isLoading = true;
       _errorMsg = null;
     });
-    // Simulasi register, ganti dengan AuthService jika ada
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (_emailController.text == "fail@email.com") {
+
+    try {
+      // Check if email or username already exists
+      final emailExists = await _authService.checkEmailExists(
+        _emailController.text,
+      );
+      final usernameExists = await _authService.checkUsernameExists(
+        _usernameController.text,
+      );
+
+      if (emailExists || usernameExists) {
+        setState(() {
+          _isLoading = false;
+          _errorMsg = "Email atau username sudah terdaftar!";
+        });
+        return;
+      }
+
+      final success = await _authService.signUp(
+        email: _emailController.text,
+        password: _passwordController.text,
+        username: _usernameController.text,
+        tanggalLahir: _tanggalLahir,
+      );
+
+      if (success) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Akun berhasil dibuat!')),
+          );
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMsg = "Gagal membuat akun!";
+        });
+      }
+    } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMsg = "Email sudah terdaftar!";
+        _errorMsg = "Terjadi kesalahan: $e";
       });
-      return;
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Akun berhasil dibuat!')));
-      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 

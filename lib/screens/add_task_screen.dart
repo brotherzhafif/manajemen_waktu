@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/task_model.dart';
-import '../repositories/task_repository.dart';
+import '../services/firebase_task_repository.dart';
 import '../services/notification_service.dart';
+import '../services/firebase_auth_service.dart';
 
 class AddTaskScreen extends StatefulWidget {
   const AddTaskScreen({super.key});
@@ -14,10 +15,21 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
+  final _authService = FirebaseAuthService.instance;
+  final _taskRepository = FirebaseTaskRepository.instance;
   DateTime? _selectedDateTime;
   String _priority = 'Medium';
   bool _isLoading = false;
   String? _errorMsg;
+
+  // Helper function to generate safe notification ID from string
+  int _generateNotificationId(String taskId, [int suffix = 0]) {
+    // Use simple hash function that keeps result within 32-bit integer range
+    int hash = taskId.hashCode.abs();
+    // Ensure it fits in 32-bit signed integer range [-2^31, 2^31-1]
+    hash = hash % (2147483647 - 1000); // Leave some room for suffix
+    return hash + suffix;
+  }
 
   Future<void> _pickDateTime() async {
     final now = DateTime.now();
@@ -53,14 +65,22 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       });
       return;
     }
+
+    // Check if user is logged in
+    if (!_authService.isLoggedIn || _authService.currentUser == null) {
+      setState(() {
+        _errorMsg = "Silakan login terlebih dahulu";
+      });
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _errorMsg = null;
     });
 
     try {
-      // Ganti userId sesuai login
-      final int userId = 1;
+      final userId = _authService.currentUser!.id!;
       final task = Task(
         title: _titleController.text,
         description: _descController.text,
@@ -70,60 +90,70 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
         userId: userId,
         isCompleted: false,
       );
-      final taskId = await TaskRepository().createTask(task);
+      final taskId = await _taskRepository.createTask(task);
 
-      // Pastikan notifikasi muncul segera (yang akan muncul di system tray)
-      await NotificationService().showNotification(
-        id: taskId,
-        title: 'Tugas Baru Ditambahkan',
-        body:
-            '${task.title} - ${_selectedDateTime!.hour.toString().padLeft(2, '0')}:${_selectedDateTime!.minute.toString().padLeft(2, '0')}',
-        sound: true, // Aktifkan suara
-        payload: 'task_$taskId', // payload untuk navigasi saat notif diklik
-      );
-
-      // Jadwalkan notifikasi pengingat 1 jam sebelum waktu mulai tugas
-      if (_selectedDateTime!.isAfter(
-        DateTime.now().add(const Duration(hours: 1)),
-      )) {
-        final reminderTime = _selectedDateTime!.subtract(
-          const Duration(hours: 1),
+      if (taskId != null) {
+        // Pastikan notifikasi muncul segera (yang akan muncul di system tray)
+        await NotificationService().showNotification(
+          id: _generateNotificationId(taskId),
+          title: 'Tugas Baru Ditambahkan',
+          body:
+              '${task.title} - ${_selectedDateTime!.hour.toString().padLeft(2, '0')}:${_selectedDateTime!.minute.toString().padLeft(2, '0')}',
+          sound: true, // Aktifkan suara
+          payload: 'task_$taskId', // payload untuk navigasi saat notif diklik
         );
+
+        // Jadwalkan notifikasi pengingat 1 jam sebelum waktu mulai tugas
+        if (_selectedDateTime!.isAfter(
+          DateTime.now().add(const Duration(hours: 1)),
+        )) {
+          final reminderTime = _selectedDateTime!.subtract(
+            const Duration(hours: 1),
+          );
+          await NotificationService().scheduleNotification(
+            id: _generateNotificationId(taskId, 1), // pastikan ID unik
+            title: 'Pengingat: ${task.title}',
+            body: 'Tugas dimulai dalam 1 jam lagi. Klik untuk melihat detail.',
+            scheduledTime: reminderTime,
+            sound: true,
+            payload: 'task_$taskId',
+          );
+        }
+
+        // Jadwalkan notifikasi pada waktu mulai tugas
         await NotificationService().scheduleNotification(
-          id: taskId * 100 + 1, // pastikan ID unik
-          title: 'Pengingat: ${task.title}',
-          body: 'Tugas dimulai dalam 1 jam lagi. Klik untuk melihat detail.',
-          scheduledTime: reminderTime,
+          id: _generateNotificationId(taskId, 2),
+          title: 'Tugas Dimulai: ${task.title}',
+          body: 'Waktu untuk memulai tugas ${task.title}',
+          scheduledTime: _selectedDateTime!,
           sound: true,
           payload: 'task_$taskId',
         );
-      }
 
-      // Jadwalkan notifikasi pada waktu mulai tugas
-      await NotificationService().scheduleNotification(
-        id: taskId * 100 + 2,
-        title: 'Tugas Dimulai: ${task.title}',
-        body: 'Waktu untuk memulai tugas ${task.title}',
-        scheduledTime: _selectedDateTime!,
-        sound: true,
-        payload: 'task_$taskId',
-      );
-
-      setState(() => _isLoading = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Tugas berhasil ditambahkan! Notifikasi akan muncul.',
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Tugas berhasil ditambahkan! Notifikasi akan muncul.',
+              ),
             ),
-          ),
-        );
-        Navigator.pop(context, true);
+          );
+          Navigator.pop(context, true);
+        }
+      } else {
+        setState(() {
+          _errorMsg = "Gagal menyimpan tugas. Silakan coba lagi.";
+        });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
         _errorMsg = "Gagal menyimpan tugas: $e";
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
       });
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/firebase_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,6 +12,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = FirebaseAuthService.instance;
   bool _isLoading = false;
   String? _errorMsg;
 
@@ -20,17 +22,28 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMsg = null;
     });
-    // Simulasi login, ganti dengan AuthService jika ada
-    await Future.delayed(const Duration(milliseconds: 800));
-    if (_emailController.text == "fail@email.com") {
+
+    try {
+      final success = await _authService.signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+
+      if (success) {
+        if (mounted) {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } else {
+        setState(() {
+          _isLoading = false;
+          _errorMsg = "Email atau password salah!";
+        });
+      }
+    } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMsg = "Email atau password salah!";
+        _errorMsg = "Terjadi kesalahan: $e";
       });
-      return;
-    }
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/dashboard');
     }
   }
 

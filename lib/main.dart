@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:timezone/data/latest.dart' as tz;
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/dashboard_screen.dart';
@@ -6,9 +7,12 @@ import 'screens/add_task_screen.dart';
 import 'screens/task_list_screen.dart';
 import 'screens/reminder_screen.dart';
 import 'screens/report_screen.dart';
+import 'screens/user_management_screen.dart';
+import 'screens/profile_screen.dart';
 import 'services/notification_service.dart';
+import 'services/firebase_service.dart';
+import 'services/firebase_auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'screens/notification_debug_screen.dart';
 
 Future<void> requestNotificationPermission() async {
   debugPrint('🔔 Requesting notification permissions...');
@@ -27,43 +31,36 @@ Future<void> requestNotificationPermission() async {
     debugPrint('⚠️ Notification permission denied');
   } else if (status.isPermanentlyDenied) {
     debugPrint('❌ Notification permission permanently denied');
-    // Show dialog explaining how to enable notifications from settings
     debugPrint('🔔 Opening app settings...');
     openAppSettings();
   }
 }
 
 void main() async {
-  // Add debug log
-  debugPrint('🚀 App starting...');
-
-  // Ensure initialized before accessing native code
   WidgetsFlutterBinding.ensureInitialized();
-  debugPrint('✅ Flutter initialized');
+
+  // Initialize Firebase
+  await FirebaseService.instance.initialize();
 
   // Initialize notification service
-  try {
-    debugPrint('🔔 Initializing NotificationService...');
-    await NotificationService().init();
-    debugPrint('✅ NotificationService initialized');
-  } catch (e) {
-    debugPrint('❌ Error initializing NotificationService: $e');
-  }
+  final notificationService = NotificationService();
+  await notificationService.init();
+  tz.initializeTimeZones();
 
-  // Request notification permission with enhanced logging
-  try {
-    debugPrint('🔔 Requesting notification permissions...');
-    await requestNotificationPermission();
-  } catch (e) {
-    debugPrint('❌ Error requesting permissions: $e');
-  }
+  // Request notification permissions
+  await requestNotificationPermission();
 
-  debugPrint('🚀 Starting app...');
-  runApp(const MyApp());
+  // Load user session
+  final authService = FirebaseAuthService.instance;
+  await authService.loadUserSession();
+
+  runApp(MyApp(authService: authService));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final FirebaseAuthService authService;
+
+  const MyApp({super.key, required this.authService});
 
   @override
   Widget build(BuildContext context) {
@@ -116,7 +113,7 @@ class MyApp extends StatelessWidget {
           color: Colors.blue,
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: authService.isLoggedIn ? '/dashboard' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignupScreen(),
@@ -125,7 +122,10 @@ class MyApp extends StatelessWidget {
         '/daftar-tugas': (context) => const TaskListScreen(),
         '/pengingat': (context) => const ReminderScreen(),
         '/laporan': (context) => const ReportScreen(),
-        '/debug-notifikasi': (context) => const NotificationDebugScreen(),
+        '/manajemen-user': (context) => const UserManagementScreen(),
+        '/tambah-user': (context) => const UserManagementScreen(),
+        '/edit-user': (context) => const UserManagementScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
     );
   }

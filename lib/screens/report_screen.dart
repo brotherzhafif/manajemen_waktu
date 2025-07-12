@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import '../repositories/task_repository.dart';
+import '../services/firebase_task_repository.dart';
+import '../services/firebase_auth_service.dart';
 import '../models/task_model.dart';
 
 class ReportScreen extends StatefulWidget {
@@ -13,6 +13,8 @@ class ReportScreen extends StatefulWidget {
 }
 
 class _ReportScreenState extends State<ReportScreen> {
+  final _authService = FirebaseAuthService.instance;
+  final _taskRepository = FirebaseTaskRepository.instance;
   DateTime _activeMonth = DateTime(DateTime.now().year, DateTime.now().month);
   late Future<List<Task>> _tasksFuture;
 
@@ -24,8 +26,13 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   void _loadTasks() {
-    // Ganti userId sesuai login
-    _tasksFuture = TaskRepository().getTasksByUserId(1);
+    if (_authService.isLoggedIn && _authService.currentUser?.id != null) {
+      _tasksFuture = _taskRepository.getTasksByUserId(
+        _authService.currentUser!.id!,
+      );
+    } else {
+      _tasksFuture = Future.value([]);
+    }
   }
 
   void _changeMonth(int delta) {

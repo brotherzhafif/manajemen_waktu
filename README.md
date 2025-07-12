@@ -1,98 +1,150 @@
-# 🕒 Aplikasi Pengelola Waktu
+# 🕒 Aplikasi Pengelola Waktu (Firebase Version)
 
-Aplikasi mobile Flutter untuk membantu pengguna mengatur waktu harian mereka dengan fitur Rencana Harian, Reminder (Notifikasi), dan Statistik Tugas.
+Aplikasi manajemen waktu yang dibangun dengan Flutter dan Firebase untuk membantu pengguna mengelola tugas-tugas harian mereka dengan efisien.
 
----
+## 🔥 **PENTING: Aplikasi Telah Dimigrasi ke Firebase!**
+
+> ⚠️ **Aplikasi ini telah sepenuhnya direfactor dari SQLite lokal ke Firebase.**  
+> Lihat file `README_FIREBASE.md` untuk panduan lengkap setup Firebase.
 
 ## 📱 Fitur Utama
 
-- 🔐 **Login & Registrasi**
-- 📝 **Manajemen Tugas (CRUD)**
-- ⏰ **Reminder Otomatis (Push Notification)**
-- 📊 **Statistik Produktivitas (Grafik Harian/Mingguan)**
+- 🔐 **Login & Registrasi** dengan Firebase Auth
+- 📝 **Manajemen Tugas (CRUD)** tersimpan di Cloud Firestore
+- ⏰ **Reminder Otomatis** (Push Notification)
+- 📊 **Statistik Produktivitas** (Grafik Harian/Mingguan)
 - 🎯 **Tandai Tugas Selesai / Belum**
-- 💾 **Penyimpanan Lokal dengan SQLite**
+- ☁️ **Penyimpanan Cloud** dengan Firebase
+- 🔄 **Real-time sync** antar device
 
 ---
 
 ## 🛠️ Teknologi yang Digunakan
 
-| Komponen         | Teknologi                         |
-| ---------------- | --------------------------------- |
-| Framework        | Flutter + Dart                    |
-| Database Lokal   | SQLite (`sqflite`)                |
-| Notifikasi       | `flutter_local_notifications`     |
-| Grafik Statistik | `fl_chart`                        |
-| State Management | `provider`                        |
-| Form Validasi    | `flutter_form_builder` (opsional) |
-| IDE              | Android Studio / VS Code          |
+| Komponen         | Teknologi                       |
+| ---------------- | ------------------------------- |
+| Framework        | Flutter + Dart                  |
+| Backend          | **Firebase** (Auth + Firestore) |
+| Authentication   | **Firebase Auth**               |
+| Database         | **Cloud Firestore**             |
+| Notifikasi       | `flutter_local_notifications`   |
+| Grafik Statistik | `fl_chart`                      |
+| State Management | `provider`                      |
+| IDE              | Android Studio / VS Code        |
 
 ---
 
-## 📂 Struktur Folder
+## 🚀 Quick Start
+
+### 1. **Setup Firebase (WAJIB!)**
 
 ```bash
-lib/
-│
-├── main.dart
-├── models/
-│   └── task_model.dart
-├── screens/
-│   ├── login_screen.dart
-│   ├── signup_screen.dart
-│   ├── dashboard_screen.dart
-│   ├── add_task_screen.dart
-│   ├── reminder_screen.dart
-│   └── report_screen.dart
-├── widgets/
-│   └── task_card.dart
-├── services/
-│   ├── db_service.dart
-│   └── notification_service.dart
-└── utils/
-    └── constants.dart
+# Install FlutterFire CLI
+dart pub global activate flutterfire_cli
+
+# Configure Firebase
+flutterfire configure
 ```
 
----
+### 2. **Install Dependencies**
 
-## 🚀 Cara Menjalankan Proyek
+```bash
+flutter pub get
+```
 
-1. **Clone repository ini:**
+### 3. **Run App**
 
-   ```bash
-   git clone https://github.com/username/manajemen_waktu.git
-   cd manajemen_waktu
-   ```
+```bash
+flutter run
+```
 
-2. **Install dependency:**
-
-   ```bash
-   flutter pub get
-   ```
-
-3. **Jalankan proyek di emulator atau perangkat:**
-
-   ```bash
-   flutter run
-   ```
+⚠️ **Penting**: Anda harus membuat project Firebase sendiri dan mengkonfigurasinya. Lihat `README_FIREBASE.md` untuk panduan lengkap.
 
 ---
 
-## 🔔 Konfigurasi Notifikasi
+## 📋 Setup Requirements
 
-1. Tambahkan permission di `AndroidManifest.xml`:
-
-   ```xml
-   <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-   ```
-
-2. Inisialisasi `flutter_local_notifications` di `main.dart`.
+1. ✅ **Flutter SDK** (latest stable)
+2. ✅ **Firebase Account** dan project
+3. ✅ **FlutterFire CLI** untuk konfigurasi
+4. ✅ **Android/iOS development setup**
 
 ---
 
-## 📌 To-Do Development
+## 🗑️ Yang Sudah Tidak Digunakan (Dihapus)
 
-- [x] Login & Register (offline)
-- [x] CRUD tugas harian
-- [x] Reminder dengan notifikasi
-- [x] Statistik dan laporan visual
+- ❌ `sqflite` (SQLite database)
+- ❌ `path` (local file system)
+- ❌ `shared_preferences` (untuk session management)
+- ❌ Local `DatabaseHelper`
+- ❌ Local `UserRepository`
+- ❌ Local `TaskRepository`
+- ❌ Local `AuthService`
+
+## ✅ Yang Baru (Firebase)
+
+- 🆕 `firebase_core`
+- 🆕 `firebase_auth`
+- 🆕 `cloud_firestore`
+- 🆕 `FirebaseAuthService`
+- 🆕 `FirebaseTaskRepository`
+- 🆕 `FirebaseService`
+
+---
+
+## 📖 Dokumentasi Lengkap
+
+**📘 Untuk setup Firebase lengkap, baca: [`README_FIREBASE.md`](./README_FIREBASE.md)**
+
+File tersebut berisi:
+
+- Langkah-langkah setup Firebase project
+- Konfigurasi authentication & Firestore
+- Security rules
+- Troubleshooting
+- Database structure
+- Migration notes
+
+---
+
+## ⚡ Keuntungan Firebase
+
+1. **🔄 Real-time sync** - Data langsung tersinkronisasi antar device
+2. **☁️ Cloud storage** - Data aman di cloud, tidak hilang saat ganti device
+3. **🔐 Secure auth** - Firebase Auth handle keamanan
+4. **📱 Multi-platform** - Data sama di Android, iOS, Web
+5. **🔌 Offline support** - Tetap bisa digunakan tanpa internet
+6. **📈 Scalable** - Siap untuk banyak user
+
+---
+
+## 🎯 Cara Penggunaan
+
+1. **Register/Login** - Buat akun atau masuk dengan email
+2. **Tambah Tugas** - Klik "+" untuk membuat tugas baru
+3. **Set Reminder** - Pilih waktu untuk notifikasi
+4. **Track Progress** - Lihat statistik di tab Report
+5. **Manage Profile** - Edit profil di tab Profile
+
+---
+
+## 🤝 Contributing
+
+Jika ingin berkontribusi:
+
+1. Fork repository
+2. Setup Firebase project Anda sendiri
+3. Buat feature branch
+4. Submit pull request
+
+---
+
+## 📞 Support & Issues
+
+- 📋 **Issues**: Gunakan GitHub Issues untuk bug reports
+- 📖 **Firebase Docs**: https://firebase.google.com/docs/flutter
+- 🔧 **Setup Help**: Lihat `README_FIREBASE.md`
+
+---
+
+**🎉 Happy coding with Firebase! 🔥**

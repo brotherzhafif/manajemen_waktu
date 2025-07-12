@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import '../repositories/task_repository.dart';
+import '../services/firebase_task_repository.dart';
+import '../services/firebase_auth_service.dart';
 import '../models/task_model.dart';
 
 class ReminderScreen extends StatefulWidget {
@@ -12,6 +13,8 @@ class ReminderScreen extends StatefulWidget {
 }
 
 class _ReminderScreenState extends State<ReminderScreen> {
+  final _authService = FirebaseAuthService.instance;
+  final _taskRepository = FirebaseTaskRepository.instance;
   DateTime _activeMonth = DateTime(DateTime.now().year, DateTime.now().month);
   late Future<List<Task>> _tasksFuture;
 
@@ -23,8 +26,13 @@ class _ReminderScreenState extends State<ReminderScreen> {
   }
 
   void _loadTasks() {
-    // Ganti userId sesuai login
-    _tasksFuture = TaskRepository().getTasksByUserId(1);
+    if (_authService.isLoggedIn && _authService.currentUser?.id != null) {
+      _tasksFuture = _taskRepository.getTasksByUserId(
+        _authService.currentUser!.id!,
+      );
+    } else {
+      _tasksFuture = Future.value([]);
+    }
   }
 
   void _changeMonth(int delta) {
@@ -34,8 +42,8 @@ class _ReminderScreenState extends State<ReminderScreen> {
     });
   }
 
-  Future<void> _deleteTask(int id) async {
-    await TaskRepository().deleteTask(id);
+  Future<void> _deleteTask(String id) async {
+    await _taskRepository.deleteTask(id);
     _loadTasks();
     setState(() {});
   }
