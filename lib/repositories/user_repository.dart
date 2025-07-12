@@ -19,8 +19,8 @@ class UserRepository {
 
     if (maps.isNotEmpty) {
       return User.fromMap(maps.first);
-    }
-    return null;
+      }
+      return null;
   }
 
   Future<User?> getUserById(int id) async {
@@ -29,7 +29,7 @@ class UserRepository {
       'users',
       where: 'id = ?',
       whereArgs: [id],
-    );
+      );
 
     if (maps.isNotEmpty) {
       return User.fromMap(maps.first);
@@ -47,7 +47,7 @@ class UserRepository {
     final db = await _databaseHelper.database;
     return await db.update(
       'users',
-      user.toMap(),
+        user.toMap(),
       where: 'id = ?',
       whereArgs: [user.id],
     );
@@ -74,12 +74,12 @@ class UserRepository {
       return User.fromMap(maps.first);
     }
     return null;
-  }
+    }
 
   Future<bool> isEmailExists(String email) async {
     final user = await getUserByEmail(email);
     return user != null;
-  }
+    }
 
   Future<bool> isUsernameExists(String username) async {
     final db = await _databaseHelper.database;
