@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../services/firebase_auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -14,7 +14,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
+  final _authService = FirebaseAuthService.instance;
   DateTime? _tanggalLahir;
   bool _isLoading = false;
   String? _errorMsg;
@@ -25,27 +25,42 @@ class _SignupScreenState extends State<SignupScreen> {
       _isLoading = true;
       _errorMsg = null;
     });
-    
+
     try {
-      final success = await _authService.register(
-        _usernameController.text,
+      // Check if email or username already exists
+      final emailExists = await _authService.checkEmailExists(
         _emailController.text,
-        _passwordController.text,
+      );
+      final usernameExists = await _authService.checkUsernameExists(
+        _usernameController.text,
+      );
+
+      if (emailExists || usernameExists) {
+        setState(() {
+          _isLoading = false;
+          _errorMsg = "Email atau username sudah terdaftar!";
+        });
+        return;
+      }
+
+      final success = await _authService.signUp(
+        email: _emailController.text,
+        password: _passwordController.text,
+        username: _usernameController.text,
         tanggalLahir: _tanggalLahir,
       );
-      
+
       if (success) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Akun berhasil dibuat!')),
           );
-          // Langsung arahkan ke dashboard karena register juga melakukan login
           Navigator.pushReplacementNamed(context, '/dashboard');
         }
       } else {
         setState(() {
           _isLoading = false;
-          _errorMsg = "Email atau username sudah terdaftar!";
+          _errorMsg = "Gagal membuat akun!";
         });
       }
     } catch (e) {

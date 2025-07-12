@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
+import '../services/firebase_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,7 +12,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
+  final _authService = FirebaseAuthService.instance;
   bool _isLoading = false;
   String? _errorMsg;
 
@@ -22,13 +22,13 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = true;
       _errorMsg = null;
     });
-    
+
     try {
-      final success = await _authService.login(
-        _emailController.text,
-        _passwordController.text,
+      final success = await _authService.signIn(
+        email: _emailController.text,
+        password: _passwordController.text,
       );
-      
+
       if (success) {
         if (mounted) {
           Navigator.pushReplacementNamed(context, '/dashboard');

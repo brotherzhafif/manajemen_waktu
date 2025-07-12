@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "112722249195",
+    "project_id": "manajemen-waktu-app",
+    "storage_bucket": "manajemen-waktu-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:112722249195:android:247e8b3777333b833b45ae",
+        "android_client_info": {
+          "package_name": "com.example.manajemen_waktu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAlWe1UKZOfrl_JG__OVpO7I2H2yoWAkSU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

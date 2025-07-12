@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../repositories/user_repository.dart';
-import '../services/auth_service.dart';
+import '../services/firebase_auth_service.dart';
 
 class UserManagementScreen extends StatefulWidget {
   const UserManagementScreen({super.key});
@@ -14,24 +13,45 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
-  final _userRepository = UserRepository();
-  final _authService = AuthService();
+  final _authService = FirebaseAuthService.instance;
   bool _isLoading = false;
-  bool _isEditing = false;
-  int? _editingUserId;
   String? _errorMsg;
   DateTime? _tanggalLahir;
-  String _selectedRole = 'user'; // Default role adalah 'user' (role tidak dapat diubah)
 
   @override
   void initState() {
     super.initState();
-    // Penundaan diperlukan karena ModalRoute.of(context) belum tersedia di initState
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadUserData();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMsg = null;
     });
+
+    try {
+      final currentUser = _authService.currentUser;
+      if (currentUser != null) {
+        setState(() {
+          _usernameController.text = currentUser.username;
+          _emailController.text = currentUser.email;
+          _tanggalLahir = currentUser.tanggalLahir;
+        });
+      } else {
+        setState(() {
+          _errorMsg = 'Tidak ada data pengguna yang ditemukan';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMsg = 'Terjadi kesalahan: $e';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _pickTanggalLahir() async {
@@ -48,153 +68,35 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
     }
   }
 
-  Future<void> _loadUserData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMsg = null;
-    });
-
-    try {
-      // Cek apakah ada parameter dari route
-      final Map<String, dynamic>? args =
-          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-
-      if (args != null && args.containsKey('userId')) {
-        // Jika ada userId, muat data pengguna tersebut
-        final userId = int.parse(args['userId']);
-        final user = await _userRepository.getUserById(userId);
-
-        if (user != null) {
-          setState(() {
-            _usernameController.text = user.username;
-            _emailController.text = user.email;
-            _editingUserId = user.id;
-            _tanggalLahir = user.tanggalLahir;
-            _selectedRole = user.role ?? 'user';
-            _isEditing = true;
-          });
-        }
-      } else if (args == null) {
-        // Jika tidak ada parameter, muat data pengguna yang sedang login
-        final currentUser = _authService.currentUser;
-        if (currentUser != null) {
-          setState(() {
-            _usernameController.text = currentUser.username;
-            _emailController.text = currentUser.email;
-            _editingUserId = currentUser.id;
-            _tanggalLahir = currentUser.tanggalLahir;
-            _selectedRole = currentUser.role ?? 'user';
-            _isEditing = true;
-          });
-        }
-      } else {
-        // Jika tidak ada userId, ini adalah tambah pengguna baru
-        setState(() {
-          _usernameController.clear();
-          _emailController.clear();
-          _passwordController.clear();
-          _editingUserId = null;
-          _tanggalLahir = null;
-          _selectedRole = 'user';
-          _isEditing = false;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _errorMsg = 'Terjadi kesalahan: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
-  }
-
   Future<void> _saveUser() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Periksa apakah password dan konfirmasi password cocok untuk pengguna baru
-    if (!_isEditing &&
-        _passwordController.text != _confirmPasswordController.text) {
-      setState(() {
-        _errorMsg = 'Password dan konfirmasi password tidak cocok';
-      });
-      return;
-    }
-
     setState(() {
       _isLoading = true;
       _errorMsg = null;
     });
 
     try {
-      if (_isEditing && _editingUserId != null) {
-        // Update existing user
-        final updatedUser = User(
-          id: _editingUserId,
-          username: _usernameController.text,
-          email: _emailController.text,
-          password: _passwordController.text.isNotEmpty
-              ? _passwordController.text
-              : _authService.currentUser?.password ?? '',
-          tanggalLahir: _tanggalLahir,
-          role: _selectedRole,
-        );
+      // Update user profile in Firebase
+      final updatedUser = User(
+        id: _authService.currentUser!.id,
+        username: _usernameController.text,
+        email: _emailController.text,
+        tanggalLahir: _tanggalLahir,
+        role: 'user',
+      );
 
-        // Menggunakan metode updateUser dari UserRepository
-        await _userRepository.updateUser(updatedUser);
+      final success = await _authService.updateUserProfile(updatedUser);
 
-        // Jika user yang diupdate adalah user yang sedang login, update juga di AuthService
-        if (_editingUserId == _authService.currentUser?.id) {
-          await _authService.updateCurrentUser(updatedUser);
-        }
-
+      if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Profil berhasil diperbarui')),
         );
-      } else {
-        // Create new user
-        final newUser = User(
-          username: _usernameController.text,
-          email: _emailController.text,
-          password: _passwordController.text,
-          tanggalLahir: _tanggalLahir,
-          role: _selectedRole,
-        );
-
-        // Check if email already exists
-        if (await _userRepository.isEmailExists(_emailController.text)) {
-          setState(() {
-            _isLoading = false;
-            _errorMsg = 'Email sudah terdaftar';
-          });
-          return;
-        }
-
-        // Check if username already exists
-        if (await _userRepository.isUsernameExists(_usernameController.text)) {
-          setState(() {
-            _isLoading = false;
-            _errorMsg = 'Username sudah digunakan';
-          });
-          return;
-        }
-
-        final userId = await _userRepository.createUser(newUser);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pengguna berhasil ditambahkan')),
-        );
-
-        // Clear form after successful creation
-        _usernameController.clear();
-        _emailController.clear();
-        _passwordController.clear();
-        setState(() {
-          _tanggalLahir = null;
-        });
-
-        // Kembali ke halaman sebelumnya
         Navigator.pop(context);
+      } else {
+        setState(() {
+          _errorMsg = 'Gagal memperbarui profil';
+        });
       }
     } catch (e) {
       setState(() {
@@ -209,180 +111,139 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Cek apakah ada parameter dari route
-    final Map<String, dynamic>? args =
-        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final bool isAdmin = false; // Remove admin functionality
-    final String title = args != null && args['title'] != null
-        ? args['title']
-        : (_isEditing ? 'Edit Profil' : 'Daftar Akun');
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        title: const Text('Edit Profil'),
         backgroundColor: Colors.blue,
         foregroundColor: Colors.white,
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  Icon(
-                    _isEditing ? Icons.person : Icons.person_add,
-                    size: 80,
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _isEditing ? 'Edit Profil' : 'Tambah Pengguna',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  if (_errorMsg != null)
-                    Container(
-                      width: double.infinity,
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red[50],
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.error, color: Colors.red, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _errorMsg!,
-                              style: const TextStyle(color: Colors.red),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Center(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      children: [
+                        const Icon(Icons.person, size: 80, color: Colors.blue),
+                        const SizedBox(height: 16),
+                        const Text(
+                          'Edit Profil',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        if (_errorMsg != null)
+                          Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.error,
+                                  color: Colors.red,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _errorMsg!,
+                                    style: const TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                  // Role selection removed - all users are 'user' role
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Username',
-                      prefixIcon: Icon(Icons.person),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Username tidak boleh kosong';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Email tidak boleh kosong';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Email tidak valid';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  GestureDetector(
-                    onTap: _pickTanggalLahir,
-                    child: AbsorbPointer(
-                      child: TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'Tanggal Lahir',
-                          prefixIcon: Icon(Icons.cake),
-                          hintText: 'Pilih tanggal lahir',
-                          suffixIcon: Icon(Icons.calendar_today),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
+                            prefixIcon: Icon(Icons.person),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Username tidak boleh kosong';
+                            }
+                            return null;
+                          },
                         ),
-                        controller: TextEditingController(
-                          text: _tanggalLahir == null
-                              ? ''
-                              : '${_tanggalLahir!.day}/${_tanggalLahir!.month}/${_tanggalLahir!.year}',
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.email),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          enabled:
+                              false, // Email tidak bisa diubah di Firebase Auth
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Email tidak boleh kosong';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Format email tidak valid';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        ListTile(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          tileColor: Colors.blue[50],
+                          title: Text(
+                            _tanggalLahir == null
+                                ? 'Pilih Tanggal Lahir'
+                                : '${_tanggalLahir!.day.toString().padLeft(2, '0')}-'
+                                      '${_tanggalLahir!.month.toString().padLeft(2, '0')}-'
+                                      '${_tanggalLahir!.year}',
+                          ),
+                          leading: const Icon(
+                            Icons.calendar_today,
+                            color: Colors.blue,
+                          ),
+                          trailing: const Icon(
+                            Icons.arrow_drop_down,
+                            color: Colors.blue,
+                          ),
+                          onTap: _pickTanggalLahir,
+                        ),
+                        const SizedBox(height: 32),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _saveUser,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Text('Simpan Perubahan'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    obscureText: true,
-                    decoration: InputDecoration(
-                      labelText: _isEditing
-                          ? 'Password Baru (opsional)'
-                          : 'Password',
-                      prefixIcon: const Icon(Icons.lock),
-                    ),
-                    validator: (value) {
-                      if (!_isEditing && (value == null || value.isEmpty)) {
-                        return 'Password tidak boleh kosong';
-                      }
-                      if (value != null &&
-                          value.isNotEmpty &&
-                          value.length < 6) {
-                        return 'Password minimal 6 karakter';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  // Hanya tampilkan konfirmasi password jika bukan mode edit
-                  if (!_isEditing)
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Konfirmasi Password',
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Konfirmasi password';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Password tidak sama';
-                        }
-                        return null;
-                      },
-                    ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _saveUser,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(_isEditing ? 'Simpan Perubahan' : 'Daftar'),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -390,8 +251,6 @@ class _UserManagementScreenState extends State<UserManagementScreen> {
   void dispose() {
     _usernameController.dispose();
     _emailController.dispose();
-    _passwordController.dispose();
-    _confirmPasswordController.dispose();
     super.dispose();
   }
 }

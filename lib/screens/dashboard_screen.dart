@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import '../repositories/task_repository.dart';
+import '../services/firebase_task_repository.dart';
 import '../models/task_model.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import '../services/notification_service.dart';
-import '../services/auth_service.dart';
+import '../services/firebase_auth_service.dart';
 import 'reminder_screen.dart';
 import 'report_screen.dart';
 import 'profile_screen.dart';
@@ -20,7 +19,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
   DateTime _activeMonth = DateTime(DateTime.now().year, DateTime.now().month);
   late Future<List<Task>> _tasksFuture;
-  final AuthService _authService = AuthService();
+  final FirebaseAuthService _authService = FirebaseAuthService.instance;
+  final FirebaseTaskRepository _taskRepository =
+      FirebaseTaskRepository.instance;
 
   @override
   void initState() {
@@ -28,13 +29,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     initializeDateFormatting('id_ID', null);
     _checkUserSession();
   }
-  
+
   Future<void> _checkUserSession() async {
-    // Cek apakah ada sesi user yang tersimpan
-    if (_authService.currentUser == null) {
+    // Check if user is authenticated
+    if (!_authService.isLoggedIn) {
       final hasSession = await _authService.loadUserSession();
       if (!hasSession && mounted) {
-        // Jika tidak ada sesi, arahkan ke halaman login
         Navigator.pushReplacementNamed(context, '/login');
         return;
       }
@@ -43,10 +43,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _loadTasks() {
-    if (_authService.currentUser != null && _authService.currentUser!.id != null) {
-      _tasksFuture = TaskRepository().getTasksByUserId(_authService.currentUser!.id!);
+    if (_authService.currentUser != null &&
+        _authService.currentUser!.id != null) {
+      _tasksFuture = _taskRepository.getTasksByUserId(
+        _authService.currentUser!.id!,
+      );
     } else {
-      // Fallback jika tidak ada user yang login
       _tasksFuture = Future.value([]);
     }
   }
@@ -59,7 +61,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Future<void> _toggleStatus(Task task) async {
-    await TaskRepository().updateTask(
+    await _taskRepository.updateTask(
       task.copyWith(isCompleted: !task.isCompleted),
     );
     _loadTasks();
@@ -251,16 +253,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 value: 'manage_users',
                 child: Text('Manajemen Pengguna'),
               ),
-              const PopupMenuItem(
-                value: 'logout', 
-                child: Text('Logout')
-              ),
+              const PopupMenuItem(value: 'logout', child: Text('Logout')),
             ],
             onSelected: (value) {
               if (value == 'manage_users') {
                 Navigator.pushNamed(context, '/manajemen-user');
               } else if (value == 'logout') {
-                _authService.logout();
+                _authService.signOut();
                 Navigator.pushReplacementNamed(context, '/login');
               }
             },
@@ -303,48 +302,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
     );
-  }
-
-  // Fungsi untuk menguji notifikasi
-  Future<void> _testNotification() async {
-    try {
-      debugPrint('🔔 Mengirim notifikasi test...');
-
-      // Kirim notifikasi langsung untuk testing
-      await NotificationService().showNotification(
-        id: 9999,
-        title: 'Tes Notifikasi',
-        body:
-            'Jika Anda melihat notifikasi ini, sistem notifikasi berfungsi! ${DateTime.now().toString()}',
-        sound: true,
-        payload: 'test_notification',
-      );
-
-      // Juga kirim notifikasi terjadwal 10 detik dari sekarang
-      final scheduledTime = DateTime.now().add(const Duration(seconds: 10));
-      await NotificationService().scheduleNotification(
-        id: 9998,
-        title: 'Tes Notifikasi Terjadwal',
-        body:
-            'Notifikasi terjadwal 10 detik. Waktu: ${scheduledTime.toString()}',
-        scheduledTime: scheduledTime,
-        sound: true,
-        payload: 'test_scheduled',
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Notifikasi test dikirim! Cek status bar atau tutup aplikasi untuk melihat.',
-          ),
-        ),
-      );
-    } catch (e) {
-      debugPrint('❌ Error saat mengirim notifikasi: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
   }
 }
 

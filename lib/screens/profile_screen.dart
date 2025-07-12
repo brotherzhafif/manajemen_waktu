@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
-import '../services/auth_service.dart';
-import '../repositories/user_repository.dart';
+import '../services/firebase_auth_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,8 +10,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthService _authService = AuthService();
-  final UserRepository _userRepository = UserRepository();
+  final _authService = FirebaseAuthService.instance;
   User? _currentUser;
   bool _isLoading = true;
 
@@ -32,10 +30,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (_authService.currentUser == null) {
         await _authService.loadUserSession();
       }
-      
+
       // Mendapatkan data user yang sedang login
       final currentUser = _authService.currentUser;
-      
+
       if (currentUser == null) {
         // Jika masih null, mungkin user belum login
         if (mounted) {
@@ -46,15 +44,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
         return;
       }
-      
+
       setState(() {
         _currentUser = currentUser;
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) {
@@ -91,10 +89,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               });
               try {
                 if (_currentUser != null && _currentUser!.id != null) {
-                  // Hapus akun dari database
-                  await _userRepository.deleteUser(_currentUser!.id!);
-                  // Logout
-                  await _authService.logout();
+                  // Hapus akun dari Firebase
+                  await _authService.deleteAccount();
                   // Kembali ke halaman login
                   if (!mounted) return;
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -104,9 +100,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 }
               } catch (e) {
                 if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('Error: $e')));
                 setState(() {
                   _isLoading = false;
                 });
@@ -124,58 +120,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return _isLoading
         ? const Center(child: CircularProgressIndicator())
         : _currentUser == null
-            ? const Center(child: Text('Tidak ada data pengguna'))
-            : SingleChildScrollView(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+        ? const Center(child: Text('Tidak ada data pengguna'))
+        : SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.blue,
+                  child: Icon(Icons.person, size: 50, color: Colors.white),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  _currentUser!.username,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _currentUser!.email,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 32),
+                _buildProfileCard(
+                  title: 'Informasi Akun',
                   children: [
-                    const CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.blue,
-                      child: Icon(Icons.person, size: 50, color: Colors.white),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
+                    _buildInfoRow(
+                      Icons.person,
+                      'Username',
                       _currentUser!.username,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _currentUser!.email,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey,
-                      ),
+                    const Divider(),
+                    _buildInfoRow(Icons.email, 'Email', _currentUser!.email),
+                    const Divider(),
+                    _buildInfoRow(
+                      Icons.cake,
+                      'Tanggal Lahir',
+                      _currentUser!.tanggalLahir != null
+                          ? '${_currentUser!.tanggalLahir!.day}/${_currentUser!.tanggalLahir!.month}/${_currentUser!.tanggalLahir!.year}'
+                          : 'Belum diatur',
                     ),
-                    const SizedBox(height: 32),
-                    _buildProfileCard(
-                      title: 'Informasi Akun',
-                      children: [
-                        _buildInfoRow(Icons.person, 'Username', _currentUser!.username),
-                        const Divider(),
-                        _buildInfoRow(Icons.email, 'Email', _currentUser!.email),
-                        const Divider(),
-                        _buildInfoRow(
-                          Icons.cake, 
-                          'Tanggal Lahir', 
-                          _currentUser!.tanggalLahir != null
-                            ? '${_currentUser!.tanggalLahir!.day}/${_currentUser!.tanggalLahir!.month}/${_currentUser!.tanggalLahir!.year}'
-                            : 'Belum diatur'
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _buildActionButtons(),
                   ],
                 ),
-              );
+                const SizedBox(height: 16),
+                _buildActionButtons(),
+              ],
+            ),
+          );
   }
 
-  Widget _buildProfileCard({required String title, required List<Widget> children}) {
+  Widget _buildProfileCard({
+    required String title,
+    required List<Widget> children,
+  }) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -186,10 +186,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ...children,
@@ -211,17 +208,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
               ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                ),
-              ),
+              Text(value, style: const TextStyle(fontSize: 16)),
             ],
           ),
         ],
@@ -250,7 +239,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           width: double.infinity,
           child: OutlinedButton.icon(
             icon: const Icon(Icons.delete, color: Colors.red),
-            label: const Text('Hapus Akun', style: TextStyle(color: Colors.red)),
+            label: const Text(
+              'Hapus Akun',
+              style: TextStyle(color: Colors.red),
+            ),
             onPressed: _deleteProfile,
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Colors.red),

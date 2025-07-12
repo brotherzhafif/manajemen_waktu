@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../repositories/task_repository.dart';
+import '../services/firebase_task_repository.dart';
+import '../services/firebase_auth_service.dart';
 import '../models/task_model.dart';
 
 class TaskListScreen extends StatefulWidget {
@@ -10,6 +11,8 @@ class TaskListScreen extends StatefulWidget {
 }
 
 class _TaskListScreenState extends State<TaskListScreen> {
+  final _authService = FirebaseAuthService.instance;
+  final _taskRepository = FirebaseTaskRepository.instance;
   late Future<List<Task>> _tasksFuture;
 
   @override
@@ -19,8 +22,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
   }
 
   void _loadTasks() {
-    // Ganti userId sesuai implementasi login Anda
-    _tasksFuture = TaskRepository().getTasksByUserId(1);
+    if (_authService.isLoggedIn && _authService.currentUser?.id != null) {
+      _tasksFuture = _taskRepository.getTasksByUserId(
+        _authService.currentUser!.id!,
+      );
+    } else {
+      _tasksFuture = Future.value([]);
+    }
   }
 
   Future<void> _refresh() async {
@@ -81,13 +89,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
                   trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     onPressed: () async {
-                      await TaskRepository().deleteTask(t.id!);
+                      await _taskRepository.deleteTask(t.id!);
                       _refresh();
                     },
                   ),
                   onTap: () async {
                     if (!t.isCompleted) {
-                      await TaskRepository().markTaskAsCompleted(t.id!);
+                      await _taskRepository.markTaskAsCompleted(t.id!);
                       _refresh();
                     }
                   },

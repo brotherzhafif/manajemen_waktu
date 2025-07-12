@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
@@ -11,9 +10,8 @@ import 'screens/report_screen.dart';
 import 'screens/user_management_screen.dart';
 import 'screens/profile_screen.dart';
 import 'services/notification_service.dart';
-import 'services/auth_service.dart';
-import 'repositories/user_repository.dart';
-import 'models/user_model.dart';
+import 'services/firebase_service.dart';
+import 'services/firebase_auth_service.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 Future<void> requestNotificationPermission() async {
@@ -33,60 +31,35 @@ Future<void> requestNotificationPermission() async {
     debugPrint('⚠️ Notification permission denied');
   } else if (status.isPermanentlyDenied) {
     debugPrint('❌ Notification permission permanently denied');
-    // Show dialog explaining how to enable notifications from settings
     debugPrint('🔔 Opening app settings...');
     openAppSettings();
   }
 }
 
-// Fungsi untuk membuat akun user default jika belum ada
-Future<void> createDefaultUserAccount() async {
-  debugPrint('👤 Checking for default user account...');
-  final userRepository = UserRepository();
-  final String userEmail = 'user@gmail.com';
-  final String userPassword = '12345';
-  
-  // Cek apakah akun user sudah ada
-  final existingUser = await userRepository.getUserByEmail(userEmail);
-  
-  // Jika belum ada, buat akun user baru
-  if (existingUser == null) {
-    debugPrint('👤 Creating default user account...');
-    final defaultUser = User(
-      username: 'Default User',
-      email: userEmail,
-      password: userPassword,
-      role: 'user',
-    );
-    
-    await userRepository.createUser(defaultUser);
-    debugPrint('✅ Default user account created');
-  } else {
-    debugPrint('✅ Default user account already exists');
-  }
-}
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Inisialisasi layanan notifikasi
+
+  // Initialize Firebase
+  await FirebaseService.instance.initialize();
+
+  // Initialize notification service
   final notificationService = NotificationService();
   await notificationService.init();
   tz.initializeTimeZones();
-  
-  // Inisialisasi layanan autentikasi dan coba muat sesi pengguna
-  final authService = AuthService();
+
+  // Request notification permissions
+  await requestNotificationPermission();
+
+  // Load user session
+  final authService = FirebaseAuthService.instance;
   await authService.loadUserSession();
-  
-  // Buat akun user default jika belum ada
-  await createDefaultUserAccount();
-  
+
   runApp(MyApp(authService: authService));
 }
 
 class MyApp extends StatelessWidget {
-  final AuthService authService;
-  
+  final FirebaseAuthService authService;
+
   const MyApp({super.key, required this.authService});
 
   @override
