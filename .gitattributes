@@ -3,5 +3,6 @@
 
 # 2. Aktifkan kembali folder atau jenis file spesifik yang ingin dibaca
 # Ganti 'nama-folder' dengan folder project-mu
-infasys_pintar_app/lib/models/** -linguist-vendored
-infasys_pintar_app/lib/services/** -linguist-vendored
+lib/models/** -linguist-vendored
+lib/services/** -linguist-vendored
+lib/providers/** -linguist-vendored
