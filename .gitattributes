@@ -1,0 +1,7 @@
+# 1. Tandai semua file sebagai 'bukan kode' (tidak dihitung)
+* linguist-vendored
+
+# 2. Aktifkan kembali folder atau jenis file spesifik yang ingin dibaca
+# Ganti 'nama-folder' dengan folder project-mu
+infasys_pintar_app/lib/models/** -linguist-vendored
+infasys_pintar_app/lib/services/** -linguist-vendored
